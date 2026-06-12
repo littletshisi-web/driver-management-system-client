@@ -1,0 +1,36 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-family: var(--font-head);
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Colour variants */
+.green  { background: var(--green-bg);    color: var(--green);  }
+.amber  { background: var(--amber-bg);    color: var(--amber);  }
+.red    { background: var(--red-bg);      color: var(--red);    }
+.blue   { background: var(--accent-light);color: var(--accent); }
+.purple { background: var(--purple-bg);   color: var(--purple); }
+.teal   { background: var(--teal-bg);     color: var(--teal);   }
+.gray   { background: var(--surface3);    color: var(--text2);  }
+
+/* Dot colours */
+.dot_green  { background: var(--green);  }
+.dot_amber  { background: var(--amber);  }
+.dot_red    { background: var(--red);    }
+.dot_blue   { background: var(--accent); }
+.dot_purple { background: var(--purple); }
+.dot_teal   { background: var(--teal);   }
+.dot_gray   { background: var(--text3);  }

@@ -1,0 +1,37 @@
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.driverCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  font-family: var(--font-head);
+  border: 2px solid transparent;
+}
+
+.driverName {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.earning {
+  color: var(--green);
+  font-family: var(--font-head);
+  font-size: 13px;
+}

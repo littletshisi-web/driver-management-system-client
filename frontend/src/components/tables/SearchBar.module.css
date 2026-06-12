@@ -1,0 +1,36 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  transition: border-color var(--transition);
+}
+
+.wrap:focus-within {
+  border-color: var(--accent);
+}
+
+.icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text3);
+  flex-shrink: 0;
+}
+
+.input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 13px;
+  padding: 8px 0;
+  width: 190px;
+  font-family: var(--font-body);
+}
+
+.input::placeholder {
+  color: var(--text3);
+}

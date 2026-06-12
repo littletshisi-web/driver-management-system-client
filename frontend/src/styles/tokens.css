@@ -1,0 +1,89 @@
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS
+   Single source of truth for all visual values.
+   Import once in main.jsx — available globally.
+═══════════════════════════════════════════════ */
+:root {
+  /* Surfaces */
+  --bg:           #f4f3ef;
+  --surface:      #ffffff;
+  --surface2:     #f8f7f3;
+  --surface3:     #eeecea;
+  --border:       rgba(0, 0, 0, 0.08);
+  --border2:      rgba(0, 0, 0, 0.14);
+
+  /* Typography */
+  --text:         #1a1916;
+  --text2:        #6b6860;
+  --text3:        #a8a59e;
+
+  /* Brand */
+  --accent:       #f24f13;
+  --accent-light: #ecdbd9;
+  --accent-mid:   #faa351;
+
+  /* Semantic colours */
+  --green:        #2c7b4d;
+  --green-bg:     #e6f4ec;
+  --amber:        #91681c;
+  --amber-bg:     #fdf3dc;
+  --red:          #8b2c2c;
+  --red-bg:       #fdeaea;
+  --purple:       #573484;
+  --purple-bg:    #ede8f8;
+  --teal:         #226262;
+  --teal-bg:      #e2f4f4;
+
+  /* Layout */
+  --sidebar-w:    260px;
+  --topbar-h:     58px;
+
+  /* Shape */
+  --radius:       8px;
+  --radius-lg:    12px;
+  --radius-xl:    18px;
+
+  /* Elevation */
+  --shadow:       0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+  --shadow-lg:    0 4px 24px rgba(0,0,0,0.10);
+  --shadow-xl:    0 8px 48px rgba(0,0,0,0.14);
+
+  /* Typography scale */
+  --font-head:    'Syne', sans-serif;
+  --font-body:    'Epilogue', sans-serif;
+
+  /* Transitions */
+  --transition:   150ms ease;
+}
+
+[data-theme='dark'] {
+  --bg:           #020305;
+  --surface:      #11151f;
+  --surface2:     #161b26;
+  --surface3:     #1f2530;
+  --border:       rgba(255, 255, 255, 0.08);
+  --border2:      rgba(255, 255, 255, 0.12);
+
+  --text:         #f8fafc;
+  --text2:        #cbd5e1;
+  --text3:        #94a3b8;
+
+  --accent:       #f59e0b;
+  --accent-light: #312e3d;
+  --accent-mid:   #fbbf24;
+
+  --green:        #4ade80;
+  --green-bg:     #062f18;
+  --amber:        #fbbf24;
+  --amber-bg:     #2d1904;
+  --red:          #f87171;
+  --red-bg:       #3f1616;
+  --purple:       #a78bfa;
+  --purple-bg:    #241c3f;
+  --teal:         #5eead4;
+  --teal-bg:      #0f2f2b;
+
+  --shadow:       0 1px 3px rgba(0,0,0,0.16), 0 4px 16px rgba(0,0,0,0.24);
+  --shadow-lg:    0 4px 24px rgba(0,0,0,0.30);
+  --shadow-xl:    0 8px 48px rgba(0,0,0,0.36);
+}

@@ -1,0 +1,63 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-family: var(--font-head);
+}
+
+.required {
+  color: var(--red);
+}
+
+/* Applies error border to direct child input/select/textarea */
+.control.hasError > input,
+.control.hasError > select,
+.control.hasError > textarea {
+  border-color: var(--red) !important;
+}
+
+/* Base styles applied to inputs rendered inside FormField */
+.control input,
+.control select,
+.control textarea {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition);
+  font-family: var(--font-body);
+}
+
+.control input:focus,
+.control select:focus,
+.control textarea:focus {
+  border-color: var(--accent);
+}
+
+.control select option {
+  background: var(--surface);
+}
+
+.control textarea {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.6;
+}
+
+.error {
+  font-size: 11px;
+  color: var(--red);
+  font-weight: 500;
+}

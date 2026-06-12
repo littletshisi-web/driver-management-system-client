@@ -1,0 +1,32 @@
+.loadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px;
+}
+
+.companyName {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.email {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.email:hover {
+  text-decoration: underline;
+}
+
+.commission {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+}

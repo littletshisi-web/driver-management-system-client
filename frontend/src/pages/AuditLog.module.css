@@ -1,0 +1,29 @@
+.loadingWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: var(--text2);
+  white-space: nowrap;
+  font-family: monospace;
+}
+
+.user {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.entity {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.detail {
+  font-size: 12px;
+  color: var(--text2);
+  max-width: 280px;
+}

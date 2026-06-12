@@ -1,0 +1,49 @@
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 120px;
+  width: 100%;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.num {
+  font-size: 10px;
+  color: var(--text2);
+  font-weight: 500;
+  font-family: var(--font-head);
+}
+
+.bar {
+  border-radius: 4px 4px 0 0;
+  width: 100%;
+  background: var(--surface3);
+  transition: opacity 0.15s;
+  min-height: 4px;
+  cursor: default;
+}
+
+.bar:hover {
+  opacity: 0.75;
+}
+
+.bar.accent {
+  background: var(--accent);
+}
+
+.lbl {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--font-head);
+  font-weight: 600;
+  white-space: nowrap;
+}

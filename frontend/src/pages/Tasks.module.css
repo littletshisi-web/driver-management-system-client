@@ -1,0 +1,138 @@
+.loadingFull {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80px;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.column {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.colHead {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.colTitle {
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.colTitle.blue   { color: var(--accent); }
+.colTitle.amber  { color: var(--amber);  }
+.colTitle.green  { color: var(--green);  }
+.colTitle.red    { color: var(--red);    }
+
+.colCount {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  font-family: var(--font-head);
+}
+
+.cardList {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 180px;
+  flex: 1;
+}
+
+.emptyCol {
+  text-align: center;
+  padding: 24px 12px;
+  color: var(--text3);
+  font-size: 12px;
+}
+
+.taskCard {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  cursor: default;
+  transition: all var(--transition);
+}
+
+.taskCard:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.taskCode {
+  font-family: var(--font-head);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 3px;
+  letter-spacing: -0.2px;
+}
+
+.taskMeta {
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 9px;
+}
+
+.taskFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.taskValue {
+  font-family: var(--font-head);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.taskActions {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.progressBtn {
+  flex: 1;
+  padding: 5px 8px;
+  background: var(--accent-light);
+  border: 1px solid rgba(30,58,95,0.2);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-head);
+  transition: all var(--transition);
+}
+
+.progressBtn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+@media (max-width: 1000px) { .board { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px)  { .board { grid-template-columns: 1fr; } }
