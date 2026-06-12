@@ -18,14 +18,18 @@ const DEMO_EMAILS = {
   partner: 'partner@dms.co.za',
   driver:  'driver@dms.co.za',
 };
+const LIVE_DEFAULTS = {
+  email: 'admin@fleethq.co.za',
+  password: 'Admin@1234',
+};
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const [role, setRole]       = useState('admin');
-  const [email, setEmail]     = useState(DEMO_EMAILS.admin);
-  const [password, setPassword] = useState('password');
+  const [email, setEmail]     = useState(USE_MOCK ? DEMO_EMAILS.admin : LIVE_DEFAULTS.email);
+  const [password, setPassword] = useState(USE_MOCK ? 'password' : LIVE_DEFAULTS.password);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
 
@@ -102,18 +106,20 @@ export default function Login() {
           <h1 className={styles.heading}>Sign in</h1>
           <p className={styles.subheading}>Access your role-based dashboard</p>
 
-          {/* Role selector */}
-          <div className={styles.roleToggle}>
-            {['admin', 'partner', 'driver'].map((r) => (
-              <button
-                key={r}
-                className={`${styles.roleBtn} ${role === r ? styles.roleActive : ''}`}
-                onClick={() => handleRolePick(r)}
-              >
-                {r.charAt(0).toUpperCase() + r.slice(1)}
-              </button>
-            ))}
-          </div>
+          {/* Role selector (mock mode only) */}
+          {USE_MOCK && (
+            <div className={styles.roleToggle}>
+              {['admin', 'partner', 'driver'].map((r) => (
+                <button
+                  key={r}
+                  className={`${styles.roleBtn} ${role === r ? styles.roleActive : ''}`}
+                  onClick={() => handleRolePick(r)}
+                >
+                  {r.charAt(0).toUpperCase() + r.slice(1)}
+                </button>
+              ))}
+            </div>
+          )}
 
           {error && <div className={styles.errorMsg}>{error}</div>}
 
@@ -152,6 +158,11 @@ export default function Login() {
           {USE_MOCK && (
             <div className={styles.mockNotice}>
               <strong>Demo mode</strong> — using mock data. Set <code>VITE_USE_MOCK=false</code> in <code>.env</code> to connect to the live backend.
+            </div>
+          )}
+          {!USE_MOCK && (
+            <div className={styles.mockNotice}>
+              <strong>Live mode</strong> — default seeded admin login is <code>admin@fleethq.co.za</code> / <code>Admin@1234</code>.
             </div>
           )}
         </div>
