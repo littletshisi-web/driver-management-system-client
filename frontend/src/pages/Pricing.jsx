@@ -1,11 +1,4 @@
-diff --git a/frontend/src/pages/Pricing.jsx b/frontend/src/pages/Pricing.jsx
-@@
-   const handleSave = async () => {
-@@
-       if (!USE_MOCK) {
--        await updatePricingRules(rules);
-+        await updatePricingRules(rules);
-       }import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePricing } from '../hooks/usePricing.js';
 import { updatePricingRules } from '../api/pricingApi.js';
@@ -80,7 +73,7 @@ export default function Pricing() {
     setSaving(true);
     try {
       if (!USE_MOCK) {
-        await updatePricingRules(rules);
+        await updatePricingRules(formRules);
       } else {
         await new Promise((r) => setTimeout(r, 500));
       }

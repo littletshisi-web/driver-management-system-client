@@ -1,9 +1,4 @@
-diff --git a/backend/src/controllers/pricingController.js b/backend/src/controllers/pricingController.js
-@@
--// In-memory pricing configuration (replace with a DB model for persistence)
--let pricingConfig = {
-+// In-memory pricing configuration (replace with a DB model for persistence)
-+let pricingConfig = {// src/controllers/pricingController.js
+// src/controllers/pricingController.js
 const pricingService = require('../services/pricingService');
 
 // In-memory pricing configuration (replace with a DB model for persistence)

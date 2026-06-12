@@ -1,16 +1,4 @@
-diff --git a/backend/src/controllers/reportController.js b/backend/src/controllers/reportController.js
-@@
--    const { from, to, driverId, partnerId } = req.query;
-+    const { from, to, driverId, partnerId } = req.query;
-     const where = {};
-     if (driverId) where.driverId = driverId;diff --git a/backend/src/controllers/reportController.js b/backend/src/controllers/reportController.js
-@@
-     if (type === 'pdf') {
-       res.setHeader('Content-Type', 'application/pdf');
-@@
--      res.send(Buffer.from(csvContent)); // placeholder
-+      res.send(Buffer.from(csvContent)); // placeholder
-     }// src/controllers/reportController.js
+// src/controllers/reportController.js
 const reportService = require('../services/reportService');
 const Earnings = require('../models/Earnings');
 const Driver = require('../models/Driver');

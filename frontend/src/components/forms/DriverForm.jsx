@@ -1,17 +1,4 @@
-diff --git a/frontend/src/components/forms/DriverForm.jsx b/frontend/src/components/forms/DriverForm.jsx
-@@
-   const [form, setForm] = useState({
-     // Backend uses firstName+lastName; frontend mock uses single 'name'
-     name:               initial.name               ?? '',
-+    firstName:          initial.firstName           ?? '',
-+    lastName:           initial.lastName           ?? '',
-@@
--          <input type="text" placeholder="e.g. John Smith" value={form.name} onChange={set('name')} />
-+          <input type="text" placeholder="e.g. John Smith" value={form.name} onChange={set('name')} />diff --git a/frontend/src/components/forms/DriverForm.jsx b/frontend/src/components/forms/DriverForm.jsx
-@@
--  const [errors, setErrors] = useState({});
-+  const isMock = import.meta.env.VITE_USE_MOCK === 'true';
-+  const [errors, setErrors] = useState({});import { useState } from 'react';
+import { useState } from 'react';
 import FormField from './FormField.jsx';
 import styles from './Form.module.css';
 import { validateDriver, isValid } from '../../utils/validation.js';
@@ -45,7 +32,6 @@ export default function DriverForm({ initial = {}, areas = [], partners = [], on
     partnerId:          initial.partner?.id         ?? '',
     availabilityStatus: initial.availabilityStatus ?? 'available',
   });
-  const isMock = import.meta.env.VITE_USE_MOCK === 'true';
   const [errors, setErrors] = useState({});
 
   const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
