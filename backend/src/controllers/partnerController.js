@@ -48,4 +48,14 @@ const remove = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getOne, create, update, remove };
+const getPartnerDrivers = async (req, res, next) => {
+  try {
+    const drivers = await Driver.findAll({
+      where: { partnerId: req.params.id },
+      attributes: ['id', 'firstName', 'lastName', 'phone', 'zone', 'status', 'rating', 'totalTrips'],
+    });
+    res.json({ success: true, data: drivers });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAll, getOne, create, update, remove, getPartnerDrivers };

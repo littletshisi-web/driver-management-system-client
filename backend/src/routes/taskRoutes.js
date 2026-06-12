@@ -13,4 +13,7 @@ router.get('/:id',        c.getOne);
 router.post('/',          authorize('admin','manager'), validate(createTaskSchema), audit('CREATE','Task'), c.create);
 router.patch('/:id/status', authorize('admin','manager'), audit('UPDATE_STATUS','Task'), c.updateStatus);
 
+// Missing endpoints that frontend expects
+router.post('/:id/assign', authorize('admin','manager'), audit('ASSIGN','Task'), c.assignDriver);
+
 module.exports = router;

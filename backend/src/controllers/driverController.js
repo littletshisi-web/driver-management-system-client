@@ -74,4 +74,32 @@ const uploadDoc = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getOne, create, update, remove, uploadDoc };
+const suspend = async (req, res, next) => {
+  try {
+    const driver = await Driver.findByPk(req.params.id);
+    if (!driver) return res.status(404).json({ success: false, message: 'Driver not found' });
+    await driver.update({ status: 'inactive' });
+    res.json({ success: true, data: driver });
+  } catch (err) { next(err); }
+};
+
+const assignPartner = async (req, res, next) => {
+  try {
+    const driver = await Driver.findByPk(req.params.id);
+    if (!driver) return res.status(404).json({ success: false, message: 'Driver not found' });
+    const { partnerId } = req.body;
+    await driver.update({ partnerId });
+    res.json({ success: true, data: driver });
+  } catch (err) { next(err); }
+};
+
+const removePartner = async (req, res, next) => {
+  try {
+    const driver = await Driver.findByPk(req.params.id);
+    if (!driver) return res.status(404).json({ success: false, message: 'Driver not found' });
+    await driver.update({ partnerId: null });
+    res.json({ success: true, data: driver });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAll, getOne, create, update, remove, uploadDoc, suspend, assignPartner, removePartner };

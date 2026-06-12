@@ -8,6 +8,7 @@ const { audit } = require('../middleware/auditMiddleware');
 router.use(protect);
 router.get('/',       c.getAll);
 router.get('/:id',    c.getOne);
+router.get('/:id/drivers', c.getPartnerDrivers);
 router.post('/',      authorize('admin','manager'), audit('CREATE','Partner'), c.create);
 router.put('/:id',    authorize('admin','manager'), audit('UPDATE','Partner'), c.update);
 router.delete('/:id', authorize('admin'),           audit('DELETE','Partner'), c.remove);

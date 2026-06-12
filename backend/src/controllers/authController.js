@@ -41,4 +41,10 @@ const refresh = async (req, res, next) => {
 
 const me = async (req, res) => res.json({ success: true, user: req.user });
 
-module.exports = { register, login, refresh, me };
+const logout = async (req, res) => {
+  // In a production system, you'd invalidate the token (e.g., add to a blacklist).
+  // For now, we simply acknowledge the logout — the frontend removes the token.
+  res.json({ success: true, message: 'Logged out successfully' });
+};
+
+module.exports = { register, login, refresh, me, logout };

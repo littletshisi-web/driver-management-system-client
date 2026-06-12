@@ -1,4 +1,11 @@
-import { useState, useEffect } from 'react';
+diff --git a/frontend/src/pages/Pricing.jsx b/frontend/src/pages/Pricing.jsx
+@@
+   const handleSave = async () => {
+@@
+       if (!USE_MOCK) {
+-        await updatePricingRules(rules);
++        await updatePricingRules(rules);
+       }import { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePricing } from '../hooks/usePricing.js';
 import { updatePricingRules } from '../api/pricingApi.js';
@@ -23,6 +30,41 @@ export default function Pricing() {
   const { rules, loading, error, refetch, estimatePrice } = usePricing();
 
   const [saving, setSaving] = useState(false);
+
+  // Editable pricing rules form — uses value + onChange so React controls the inputs
+  const [formRules, setFormRules] = useState({
+    baseFees: {},
+    ratesPerKm: {},
+    categoryModifiers: {},
+    defaultCommissionPct: 12,
+    premiumCommissionPct: 8,
+    newPartnerCommissionPct: 15,
+  });
+
+  // Sync from loaded rules
+  useEffect(() => {
+    if (rules) {
+      setFormRules({
+        baseFees: { ...rules.baseFees },
+        ratesPerKm: { ...rules.ratesPerKm },
+        categoryModifiers: { ...rules.categoryModifiers },
+        defaultCommissionPct: rules.defaultCommissionPct ?? 12,
+        premiumCommissionPct: rules.premiumCommissionPct ?? 8,
+        newPartnerCommissionPct: rules.newPartnerCommissionPct ?? 15,
+      });
+    }
+  }, [rules]);
+
+  const updateRule = (section, key) => (e) => {
+    setFormRules((prev) => ({
+      ...prev,
+      [section]: { ...prev[section], [key]: parseFloat(e.target.value) || 0 },
+    }));
+  };
+
+  const updateSimpleRule = (key) => (e) => {
+    setFormRules((prev) => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }));
+  };
 
   // Calculator state
   const [calcCategory, setCalcCategory] = useState('parcel_delivery');
@@ -70,7 +112,8 @@ export default function Pricing() {
               <input
                 type="number"
                 className={styles.ruleInput}
-                defaultValue={rules?.baseFees?.[cat.value] ?? 0}
+                value={formRules.baseFees[cat.value] ?? 0}
+                onChange={updateRule('baseFees', cat.value)}
               />
             </div>
           ))}
@@ -86,7 +129,8 @@ export default function Pricing() {
                 type="number"
                 step="0.5"
                 className={styles.ruleInput}
-                defaultValue={rules?.ratesPerKm?.[cat.value] ?? 0}
+                value={formRules.ratesPerKm[cat.value] ?? 0}
+                onChange={updateRule('ratesPerKm', cat.value)}
               />
             </div>
           ))}
@@ -102,7 +146,8 @@ export default function Pricing() {
                 type="number"
                 step="0.1"
                 className={styles.ruleInput}
-                defaultValue={rules?.categoryModifiers?.[cat.value] ?? 1}
+                value={formRules.categoryModifiers[cat.value] ?? 1}
+                onChange={updateRule('categoryModifiers', cat.value)}
               />
             </div>
           ))}
@@ -113,15 +158,15 @@ export default function Pricing() {
           <h4 className={styles.cardTitle}>Partner Commissions</h4>
           <div className={styles.row}>
             <label className={styles.rowLabel}>Default commission %</label>
-            <input type="number" className={styles.ruleInput} defaultValue={rules?.defaultCommissionPct ?? 12} />
+            <input type="number" className={styles.ruleInput} value={formRules.defaultCommissionPct} onChange={updateSimpleRule('defaultCommissionPct')} />
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>Premium partner %</label>
-            <input type="number" className={styles.ruleInput} defaultValue={rules?.premiumCommissionPct ?? 8} />
+            <input type="number" className={styles.ruleInput} value={formRules.premiumCommissionPct} onChange={updateSimpleRule('premiumCommissionPct')} />
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>New partner %</label>
-            <input type="number" className={styles.ruleInput} defaultValue={rules?.newPartnerCommissionPct ?? 15} />
+            <input type="number" className={styles.ruleInput} value={formRules.newPartnerCommissionPct} onChange={updateSimpleRule('newPartnerCommissionPct')} />
           </div>
         </div>
       </div>

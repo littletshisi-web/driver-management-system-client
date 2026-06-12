@@ -13,7 +13,13 @@ This repository contains a full-stack Driver Management System.
 
 ### Frontend
 ```bash
-cd frontend
+cdiff --git a/backend/src/controllers/pricingController.js b/backend/src/controllers/pricingController.js
+@@
+ const updateConfig = (req, res) => {
+-  pricingConfig = { ...pricingConfig, ...req.body };
++  pricingConfig = { ...pricingConfig, ...req.body };
+   res.json({ success: true, data: pricingConfig });
+ };d frontend
 npm install
 npm run dev
 ```

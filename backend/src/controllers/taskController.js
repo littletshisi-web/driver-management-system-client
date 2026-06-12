@@ -71,4 +71,14 @@ const updateStatus = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getOne, create, updateStatus };
+const assignDriver = async (req, res, next) => {
+  try {
+    const { driverId } = req.body;
+    const task = await Task.findByPk(req.params.id);
+    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+    await task.update({ driverId, status: 'assigned' });
+    res.json({ success: true, data: task });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAll, getOne, create, updateStatus, assignDriver };
