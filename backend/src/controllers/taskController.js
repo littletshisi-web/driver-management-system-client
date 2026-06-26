@@ -81,4 +81,53 @@ const assignDriver = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getOne, create, updateStatus, assignDriver };
+// GET /api/tasks/stats
+const getStats = async (req, res, next) => {
+  try {
+    const [total, active, pending] = await Promise.all([
+      Task.count(),
+      Task.count({ where: { status: { [Op.in]: ['assigned', 'in-transit'] } } }),
+      Task.count({ where: { status: 'pending' } }),
+    ]);
+    res.json({ success: true, data: { total, active, pending } });
+  } catch (err) { next(err); }
+};
+
+// GET /api/tasks/stats-by-category
+// Returns task counts grouped by category for the dashboard donut chart.
+const getStatsByCategory = async (req, res, next) => {
+  try {
+    const tasks = await Task.findAll({ attributes: ['category'] });
+
+    const counts = {};
+    tasks.forEach((t) => {
+      const cat = t.category || 'unknown';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+
+    const total = tasks.length;
+
+    const CATEGORY_LABELS = {
+      parcel_delivery:  'Parcel Delivery',
+      vehicle_towing:   'Vehicle Towing',
+      furniture_moving: 'Furniture Moving',
+    };
+
+    const CATEGORY_COLOURS = {
+      parcel_delivery:  '#1e3a5f',
+      vehicle_towing:   '#4a2080',
+      furniture_moving: '#0d5c5c',
+    };
+
+    const data = Object.entries(counts).map(([key, count]) => ({
+      label:  CATEGORY_LABELS[key] ?? key,
+      value:  total > 0 ? Math.round((count / total) * 100) : 0,
+      count,
+      colour: CATEGORY_COLOURS[key] ?? '#555',
+    }));
+
+    res.json({ success: true, data, total });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAll, getOne, create, updateStatus, assignDriver, getStats, getStatsByCategory };

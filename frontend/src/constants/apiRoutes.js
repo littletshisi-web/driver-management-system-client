@@ -6,6 +6,7 @@ export const API = {
   AUTH_LOGIN:  '/auth/login',
   AUTH_LOGOUT: '/auth/logout',
   AUTH_ME:     '/auth/me',
+  AUTH_REGISTER: '/auth/register',
 
   // Drivers
   DRIVERS:                    '/drivers',

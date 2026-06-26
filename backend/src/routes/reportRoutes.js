@@ -6,19 +6,12 @@ const { authorize } = require('../middleware/roleMiddleware');
 
 router.use(protect);
 
-// List generated reports
-router.get('/',    c.getAll);
-
-// Generate a new report
-router.post('/generate', authorize('admin','manager'), c.generate);
-
-// Earnings report endpoint — frontend calls GET /api/reports/earnings
-router.get('/earnings', c.getEarnings);
-
-// Task report endpoint — frontend calls GET /api/reports/tasks
-router.get('/tasks', c.getTaskReport);
-
-// Export endpoint — frontend calls GET /api/reports/export?type=csv|pdf
-router.get('/export', c.exportReport);
+router.get('/',                 c.getAll);
+router.post('/generate',        authorize('admin', 'manager'), c.generate);
+router.get('/earnings',         c.getEarnings);
+router.get('/tasks',            c.getTaskReport);
+router.get('/revenue-summary',  authorize('admin', 'manager'), c.getRevenueSummary);
+router.get('/tasks-by-day',     authorize('admin', 'manager'), c.getTasksByDay);
+router.get('/export',           c.exportReport);
 
 module.exports = router;

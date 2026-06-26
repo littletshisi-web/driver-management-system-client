@@ -25,7 +25,11 @@ const STATUS_LABEL  = { available: 'Available', busy: 'Busy', inactive: 'Inactiv
 
 // Assigns a consistent avatar colour to each driver based on their ID
 const AVATAR_COLOURS = ['blue', 'purple', 'teal', 'amber', 'red', 'green'];
-const avatarColour = (id) => AVATAR_COLOURS[(id - 1) % AVATAR_COLOURS.length];
+const avatarColour = (id) => {
+  const str = String(id ?? '');
+  const hash = str.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return AVATAR_COLOURS[hash % AVATAR_COLOURS.length];
+};
 
 const AVATAR_STYLES = {
   blue:   { background: 'var(--accent-light)', color: 'var(--accent)',  border: 'rgba(30,58,95,0.2)'   },
@@ -36,17 +40,24 @@ const AVATAR_STYLES = {
   green:  { background: 'var(--green-bg)',     color: 'var(--green)',   border: 'rgba(26,107,60,0.2)'  },
 };
 
+// Convert a UUID to a consistent 4-character short code
+const shortId = (uuid) => String(uuid ?? '').replace(/-/g, '').slice(0, 4).toUpperCase() || '0000';
+
+// The Driver model only stores firstName/lastName (no combined `name` field),
+// so build the display name here instead of assuming `driver.name` exists.
+const fullName = (driver) =>
+  `${driver?.firstName ?? ''} ${driver?.lastName ?? ''}`.trim() || 'Unknown Driver';
+
 export default function Drivers() {
   const { user } = useAuth();
   const toast    = useToast();
 
-  const [search, setSearch]           = useState('');
+  const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [modalOpen, setModalOpen]     = useState(false);
-  const [editing, setEditing]         = useState(null);   // null = create, object = edit
-  const [saving, setSaving]           = useState(false);
+  const [modalOpen, setModalOpen]       = useState(false);
+  const [editing, setEditing]           = useState(null);
+  const [saving, setSaving]             = useState(false);
 
-  // Partner users only see their own drivers
   const filters = {
     search,
     status: statusFilter,
@@ -65,7 +76,7 @@ export default function Drivers() {
     setSaving(true);
     try {
       if (USE_MOCK) {
-        await new Promise((r) => setTimeout(r, 600)); // simulate latency
+        await new Promise((r) => setTimeout(r, 600));
         toast(editing ? 'Driver updated successfully' : 'Driver created successfully');
         closeModal();
         refetch();
@@ -88,10 +99,11 @@ export default function Drivers() {
   };
 
   const handleSuspend = async (driver) => {
-    if (!window.confirm(`Suspend ${driver.name}? They will be set to inactive.`)) return;
+    const name = fullName(driver);
+    if (!window.confirm(`Suspend ${name}? They will be set to inactive.`)) return;
     try {
       if (!USE_MOCK) await suspendDriver(driver.id);
-      toast(`${driver.name} has been suspended`);
+      toast(`${name} has been suspended`);
       refetch();
     } catch {
       toast('Failed to suspend driver', 'error');
@@ -151,10 +163,11 @@ export default function Drivers() {
               </tr>
             </thead>
             <tbody>
-              {drivers.map((driver) => {
+              {drivers.filter(Boolean).map((driver) => {
                 const ac = avatarColour(driver.id);
                 const av = AVATAR_STYLES[ac];
-                const initials = driver.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+                const name = fullName(driver);
+                const initials = name.split(' ').filter(Boolean).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '?';
                 return (
                   <tr key={driver.id}>
                     <td>
@@ -166,8 +179,8 @@ export default function Drivers() {
                           {initials}
                         </div>
                         <div>
-                          <div className={styles.driverName}>{driver.name}</div>
-                          <div className={styles.driverId}>#DRV-{String(driver.id).padStart(3, '0')}</div>
+                          <div className={styles.driverName}>{name}</div>
+                          <div className={styles.driverId}>#DRV-{shortId(driver.id)}</div>
                         </div>
                       </div>
                     </td>
@@ -184,14 +197,14 @@ export default function Drivers() {
                       }
                     </td>
                     <td>
-                      <Badge colour={STATUS_COLOUR[driver.availabilityStatus]} dot>
-                        {STATUS_LABEL[driver.availabilityStatus]}
+                      <Badge colour={STATUS_COLOUR[driver.status]} dot>
+                        {STATUS_LABEL[driver.status]}
                       </Badge>
                     </td>
                     <td>
                       <div className={styles.actions}>
                         <Button variant="secondary" size="sm" onClick={() => openEdit(driver)}>Edit</Button>
-                        {user?.role === ROLES.ADMIN && driver.availabilityStatus !== 'inactive' && (
+                        {user?.role === ROLES.ADMIN && driver.status !== 'inactive' && (
                           <Button variant="danger" size="sm" onClick={() => handleSuspend(driver)}>Suspend</Button>
                         )}
                       </div>
@@ -204,11 +217,10 @@ export default function Drivers() {
         )}
       </TableCard>
 
-      {/* Create / Edit modal */}
       <Modal
         open={modalOpen}
         onClose={closeModal}
-        title={editing ? `Edit — ${editing.name}` : 'Add New Driver'}
+        title={editing ? `Edit — ${fullName(editing)}` : 'Add New Driver'}
         footer={<></>}
       >
         <DriverForm

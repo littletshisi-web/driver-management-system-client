@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { login as apiLogin } from '../api/authApi.js';
 import styles from './Login.module.css';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
-// Mock users used when VITE_USE_MOCK=true
 const MOCK_USERS = {
   admin:   { id: 1, name: 'Admin User',    email: 'admin@dms.co.za',   role: 'admin'   },
   partner: { id: 2, name: 'Sarah Johnson', email: 'partner@dms.co.za', role: 'partner' },
@@ -18,20 +17,16 @@ const DEMO_EMAILS = {
   partner: 'partner@dms.co.za',
   driver:  'driver@dms.co.za',
 };
-const LIVE_DEFAULTS = {
-  email: 'admin@fleethq.co.za',
-  password: 'Admin@1234',
-};
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [role, setRole]       = useState('admin');
-  const [email, setEmail]     = useState(USE_MOCK ? DEMO_EMAILS.admin : LIVE_DEFAULTS.email);
-  const [password, setPassword] = useState(USE_MOCK ? 'password' : LIVE_DEFAULTS.password);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [role, setRole]         = useState('admin');
+  const [email, setEmail]       = useState(USE_MOCK ? DEMO_EMAILS.admin : '');
+  const [password, setPassword] = useState(USE_MOCK ? 'password' : '');
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
 
   const handleRolePick = (r) => {
     setRole(r);
@@ -48,12 +43,10 @@ export default function Login() {
     setError('');
     try {
       if (USE_MOCK) {
-        // Simulate a successful login response without hitting the backend
         const user = MOCK_USERS[role];
         login('mock-token-' + role, user);
         navigate('/dashboard', { replace: true });
       } else {
-        // POST /api/auth/login → { token, user }
         const res = await apiLogin(email, password);
         login(res.data.token, res.data.user);
         navigate('/dashboard', { replace: true });
@@ -92,12 +85,6 @@ export default function Login() {
           <h2>Manage your fleet with precision.</h2>
           <p>Centralised driver operations, task assignment, and reporting — built for logistics teams that move fast.</p>
         </div>
-
-        <div className={styles.stats}>
-          <div className={styles.stat}><div className={styles.statNum}>24</div><div className={styles.statLbl}>Drivers</div></div>
-          <div className={styles.stat}><div className={styles.statNum}>3</div><div className={styles.statLbl}>Partners</div></div>
-          <div className={styles.stat}><div className={styles.statNum}>218</div><div className={styles.statLbl}>Tasks/month</div></div>
-        </div>
       </div>
 
       {/* Right panel — form */}
@@ -106,7 +93,6 @@ export default function Login() {
           <h1 className={styles.heading}>Sign in</h1>
           <p className={styles.subheading}>Access your role-based dashboard</p>
 
-          {/* Role selector (mock mode only) */}
           {USE_MOCK && (
             <div className={styles.roleToggle}>
               {['admin', 'partner', 'driver'].map((r) => (
@@ -155,14 +141,13 @@ export default function Login() {
             {loading ? 'Signing in…' : 'Sign in to dashboard'}
           </button>
 
+          <div className={styles.mockNotice}>
+            Don't have an account? <Link to="/register">Create one</Link>
+          </div>
+
           {USE_MOCK && (
             <div className={styles.mockNotice}>
               <strong>Demo mode</strong> — using mock data. Set <code>VITE_USE_MOCK=false</code> in <code>.env</code> to connect to the live backend.
-            </div>
-          )}
-          {!USE_MOCK && (
-            <div className={styles.mockNotice}>
-              <strong>Live mode</strong> — default seeded admin login is <code>admin@fleethq.co.za</code> / <code>Admin@1234</code>.
             </div>
           )}
         </div>

@@ -9,10 +9,10 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
  * Pass filters as an object: { search, status, partnerId, page, limit }
  */
 export function useDrivers(filters = {}) {
-  const [drivers, setDrivers]   = useState([]);
-  const [total, setTotal]       = useState(0);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
+  const [drivers, setDrivers] = useState([]);
+  const [total, setTotal]     = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -31,11 +31,11 @@ export function useDrivers(filters = {}) {
         if (filters.partnerId) {
           data = data.filter(d => d.partner?.id === Number(filters.partnerId));
         }
-        setDrivers(data);
+        setDrivers(data.filter(Boolean));
         setTotal(data.length);
       } else {
         const res = await getDrivers(filters);
-        setDrivers(res.data.data);
+        setDrivers((res.data.data ?? []).filter(Boolean));
         setTotal(res.data.total);
       }
     } catch (err) {

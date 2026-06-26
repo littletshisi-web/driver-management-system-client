@@ -1,208 +1,133 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useToast } from '../context/ToastContext.jsx';
-import { usePricing } from '../hooks/usePricing.js';
-import { updatePricingRules } from '../api/pricingApi.js';
-import { TASK_CATEGORIES } from '../constants/taskCategories.js';
-import { formatCurrency } from '../utils/formatCurrency.js';
+import { usePartners } from '../hooks/usePartners.js';
+import { createPartner, updatePartner } from '../api/partnerApi.js';
 import PageShell from '../components/layout/PageShell.jsx';
+import TableCard from '../components/tables/TableCard.jsx';
+import EmptyState from '../components/tables/EmptyState.jsx';
+import Badge from '../components/common/Badge.jsx';
 import Button from '../components/common/Button.jsx';
+import Modal from '../components/common/Modal.jsx';
 import ErrorBanner from '../components/common/ErrorBanner.jsx';
 import Spinner from '../components/common/Spinner.jsx';
-import styles from './Pricing.module.css';
+import PartnerForm from '../components/forms/PartnerForm.jsx';
+import styles from './Partners.module.css';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
-const AREA_MODIFIERS = [
-  { label: 'Standard (×1.0)', value: 1.0 },
-  { label: 'Extended (×1.2)', value: 1.2 },
-  { label: 'Remote (×1.5)',   value: 1.5 },
-];
-
-export default function Pricing() {
+export default function Partners() {
   const toast = useToast();
-  const { rules, loading, error, refetch, estimatePrice } = usePricing();
+  const { partners, loading, error, refetch } = usePartners();
 
-  const [saving, setSaving] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing]     = useState(null);
+  const [saving, setSaving]       = useState(false);
 
-  // Editable pricing rules form — uses value + onChange so React controls the inputs
-  const [formRules, setFormRules] = useState({
-    baseFees: {},
-    ratesPerKm: {},
-    categoryModifiers: {},
-    defaultCommissionPct: 12,
-    premiumCommissionPct: 8,
-    newPartnerCommissionPct: 15,
-  });
-
-  // Sync from loaded rules
-  useEffect(() => {
-    if (rules) {
-      setFormRules({
-        baseFees: { ...rules.baseFees },
-        ratesPerKm: { ...rules.ratesPerKm },
-        categoryModifiers: { ...rules.categoryModifiers },
-        defaultCommissionPct: rules.defaultCommissionPct ?? 12,
-        premiumCommissionPct: rules.premiumCommissionPct ?? 8,
-        newPartnerCommissionPct: rules.newPartnerCommissionPct ?? 15,
-      });
-    }
-  }, [rules]);
-
-  const updateRule = (section, key) => (e) => {
-    setFormRules((prev) => ({
-      ...prev,
-      [section]: { ...prev[section], [key]: parseFloat(e.target.value) || 0 },
-    }));
+  const openCreate = () => { setEditing(null); setModalOpen(true); };
+  const openEdit   = (p)  => {
+    // Normalise model fields back to form fields for edit mode
+    setEditing({
+      ...p,
+      email:         p.contactEmail,
+      phone:         p.contactPhone,
+      commissionPct: p.commissionRate,
+    });
+    setModalOpen(true);
   };
+  const closeModal = () => { setModalOpen(false); setEditing(null); };
 
-  const updateSimpleRule = (key) => (e) => {
-    setFormRules((prev) => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }));
-  };
-
-  // Calculator state
-  const [calcCategory, setCalcCategory] = useState('parcel_delivery');
-  const [calcDistance, setCalcDistance] = useState(15);
-  const [calcAreaMod,  setCalcAreaMod]  = useState(1.0);
-  const [calcResult,   setCalcResult]   = useState(0);
-
-  useEffect(() => {
-    setCalcResult(estimatePrice(calcCategory, Number(calcDistance), Number(calcAreaMod)));
-  }, [calcCategory, calcDistance, calcAreaMod, estimatePrice]);
-
-  const handleSave = async () => {
+  const handleSubmit = async (formData) => {
     setSaving(true);
     try {
-      if (!USE_MOCK) {
-        await updatePricingRules(formRules);
+      if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 600));
+        toast(editing ? 'Partner updated' : 'Partner created successfully');
+        closeModal();
+        refetch();
       } else {
-        await new Promise((r) => setTimeout(r, 500));
+        if (editing) {
+          await updatePartner(editing.id, formData);
+          toast('Partner updated');
+        } else {
+          await createPartner(formData);
+          toast('Partner created successfully');
+        }
+        closeModal();
+        refetch();
       }
-      toast('Pricing rules saved successfully');
-    } catch {
-      toast('Failed to save pricing rules', 'error');
+    } catch (err) {
+      toast(err.response?.data?.message || 'Failed to save partner', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <PageShell title="Pricing"><div className={styles.center}><Spinner size={28} /></div></PageShell>;
-
   return (
     <PageShell
-      title="Pricing Configuration"
-      subtitle="Set base fees, distance rates, category modifiers, and commission percentages"
-      actions={<Button variant="primary" onClick={handleSave} loading={saving}>Save Changes</Button>}
+      title="Partners"
+      subtitle="Manage partner companies and their assigned drivers"
+      actions={
+        <Button variant="primary" onClick={openCreate}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Partner
+        </Button>
+      }
     >
       {error && <ErrorBanner message={error} onRetry={refetch} />}
 
-      <div className={styles.grid}>
-        {/* Base fees */}
-        <div className={styles.card}>
-          <h4 className={styles.cardTitle}>Base Service Fees</h4>
-          {TASK_CATEGORIES.map((cat) => (
-            <div key={cat.value} className={styles.row}>
-              <label className={styles.rowLabel}>{cat.label}</label>
-              <input
-                type="number"
-                className={styles.ruleInput}
-                value={formRules.baseFees[cat.value] ?? 0}
-                onChange={updateRule('baseFees', cat.value)}
-              />
-            </div>
-          ))}
-        </div>
+      <TableCard title="All partners">
+        {loading ? (
+          <div className={styles.loadingRow}><Spinner size={22} /></div>
+        ) : partners.length === 0 ? (
+          <EmptyState message="No partners yet." action={<Button variant="secondary" size="sm" onClick={openCreate}>Add first partner</Button>} />
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Contact</th>
+                <th>Email</th>
+                <th>Commission</th>
+                <th>Drivers</th>
+                <th>Active Tasks</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partners.map((p) => (
+                <tr key={p.id}>
+                  <td><span className={styles.companyName}>{p.name}</span></td>
+                  <td>{p.contactName}</td>
+                  <td>
+                    {p.contactEmail
+                      ? <a href={`mailto:${p.contactEmail}`} className={styles.email}>{p.contactEmail}</a>
+                      : <span className={styles.empty}>—</span>
+                    }
+                  </td>
+                  <td><span className={styles.commission}>{p.commissionRate ?? 0}%</span></td>
+                  <td><Badge colour="blue">{p.Drivers?.length ?? 0} drivers</Badge></td>
+                  <td><Badge colour="amber">0 active</Badge></td>
+                  <td>
+                    <div className={styles.actions}>
+                      <Button variant="secondary" size="sm" onClick={() => toast(`Viewing ${p.name} drivers`)}>View Drivers</Button>
+                      <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>Edit</Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </TableCard>
 
-        {/* Distance rates */}
-        <div className={styles.card}>
-          <h4 className={styles.cardTitle}>Distance Rates (per km)</h4>
-          {TASK_CATEGORIES.map((cat) => (
-            <div key={cat.value} className={styles.row}>
-              <label className={styles.rowLabel}>{cat.label}</label>
-              <input
-                type="number"
-                step="0.5"
-                className={styles.ruleInput}
-                value={formRules.ratesPerKm[cat.value] ?? 0}
-                onChange={updateRule('ratesPerKm', cat.value)}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Category modifiers */}
-        <div className={styles.card}>
-          <h4 className={styles.cardTitle}>Category Modifiers</h4>
-          {TASK_CATEGORIES.map((cat) => (
-            <div key={cat.value} className={styles.row}>
-              <label className={styles.rowLabel}>{cat.label}</label>
-              <input
-                type="number"
-                step="0.1"
-                className={styles.ruleInput}
-                value={formRules.categoryModifiers[cat.value] ?? 1}
-                onChange={updateRule('categoryModifiers', cat.value)}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Commissions */}
-        <div className={styles.card}>
-          <h4 className={styles.cardTitle}>Partner Commissions</h4>
-          <div className={styles.row}>
-            <label className={styles.rowLabel}>Default commission %</label>
-            <input type="number" className={styles.ruleInput} value={formRules.defaultCommissionPct} onChange={updateSimpleRule('defaultCommissionPct')} />
-          </div>
-          <div className={styles.row}>
-            <label className={styles.rowLabel}>Premium partner %</label>
-            <input type="number" className={styles.ruleInput} value={formRules.premiumCommissionPct} onChange={updateSimpleRule('premiumCommissionPct')} />
-          </div>
-          <div className={styles.row}>
-            <label className={styles.rowLabel}>New partner %</label>
-            <input type="number" className={styles.ruleInput} value={formRules.newPartnerCommissionPct} onChange={updateSimpleRule('newPartnerCommissionPct')} />
-          </div>
-        </div>
-      </div>
-
-      {/* Live price calculator */}
-      <div className={styles.calculatorCard}>
-        <h4 className={styles.cardTitle}>
-          Live Price Calculator
-          <span className={styles.apiTag}>POST /api/pricing/calculate</span>
-        </h4>
-
-        <div className={styles.calcGrid}>
-          <div className={styles.calcGroup}>
-            <label className={styles.calcLabel}>Category</label>
-            <select className={styles.calcSelect} value={calcCategory} onChange={(e) => setCalcCategory(e.target.value)}>
-              {TASK_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
-          </div>
-
-          <div className={styles.calcGroup}>
-            <label className={styles.calcLabel}>Distance (km)</label>
-            <input
-              type="number"
-              className={styles.calcInput}
-              value={calcDistance}
-              min={1}
-              onChange={(e) => setCalcDistance(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.calcGroup}>
-            <label className={styles.calcLabel}>Area modifier</label>
-            <select className={styles.calcSelect} value={calcAreaMod} onChange={(e) => setCalcAreaMod(e.target.value)}>
-              {AREA_MODIFIERS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
-          </div>
-
-          <div className={styles.calcResultBox}>
-            <div className={styles.calcResultLabel}>Estimated Total</div>
-            <div className={styles.calcResultVal}>{formatCurrency(calcResult)}</div>
-          </div>
-        </div>
-      </div>
+      <Modal
+        open={modalOpen}
+        onClose={closeModal}
+        title={editing ? `Edit — ${editing.name}` : 'Add New Partner'}
+        footer={<></>}
+      >
+        <PartnerForm initial={editing ?? {}} onSubmit={handleSubmit} loading={saving} />
+      </Modal>
     </PageShell>
   );
 }

@@ -6,7 +6,6 @@ import { useDrivers } from '../hooks/useDrivers.js';
 import { useAreas } from '../hooks/useAreas.js';
 import { createTask, updateTaskStatus } from '../api/taskApi.js';
 import { ROLES } from '../constants/roles.js';
-import { TASK_STATUS_LABELS, TASK_STATUS_COLOURS } from '../constants/taskStatuses.js';
 import { CATEGORY_LABEL, CATEGORY_COLOUR } from '../constants/taskCategories.js';
 import { formatCurrency } from '../utils/formatCurrency.js';
 import PageShell from '../components/layout/PageShell.jsx';
@@ -20,7 +19,19 @@ import styles from './Tasks.module.css';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
-const STATUS_COLUMNS = ['assigned', 'in_progress', 'completed', 'cancelled'];
+// Must match the Task model ENUM values exactly
+const STATUS_COLUMNS = [
+  { key: 'assigned',   label: 'Assigned',    colour: 'amber'  },
+  { key: 'in-transit', label: 'In Progress', colour: 'blue'   },
+  { key: 'delivered',  label: 'Completed',   colour: 'green'  },
+  { key: 'cancelled',  label: 'Cancelled',   colour: 'red'    },
+];
+
+const driverName = (task) => {
+  const d = task.Driver;
+  if (!d) return '—';
+  return `${d.firstName ?? ''} ${d.lastName ?? ''}`.trim() || '—';
+};
 
 export default function Tasks() {
   const { user } = useAuth();
@@ -29,11 +40,10 @@ export default function Tasks() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving]       = useState(false);
 
-  // Driver only sees their own tasks
   const taskFilters = user?.role === ROLES.DRIVER ? { driverId: user.id } : {};
   const { tasks, loading, error, refetch } = useTasks(taskFilters);
-  const { drivers }  = useDrivers({ status: 'available' });
-  const { areas }    = useAreas();
+  const { drivers } = useDrivers({ status: 'available' });
+  const { areas }   = useAreas();
 
   const handleSubmit = async (formData) => {
     setSaving(true);
@@ -43,7 +53,7 @@ export default function Tasks() {
       } else {
         await createTask(formData);
       }
-      toast('Task created and assigned successfully');
+      toast('Task created successfully');
       setModalOpen(false);
       refetch();
     } catch (err) {
@@ -56,7 +66,7 @@ export default function Tasks() {
   const handleStatusChange = async (task, newStatus) => {
     try {
       if (!USE_MOCK) await updateTaskStatus(task.id, newStatus);
-      toast(`Task ${task.taskCode} moved to ${TASK_STATUS_LABELS[newStatus]}`);
+      toast(`Task ${task.taskCode} updated`);
       refetch();
     } catch {
       toast('Failed to update task status', 'error');
@@ -87,49 +97,45 @@ export default function Tasks() {
       {error && <ErrorBanner message={error} onRetry={refetch} />}
 
       <div className={styles.board}>
-        {STATUS_COLUMNS.map((status) => {
-          const columnTasks = tasks.filter((t) => t.status === status);
-          const colColour   = TASK_STATUS_COLOURS[status];
+        {STATUS_COLUMNS.map(({ key, label, colour }) => {
+          const columnTasks = tasks.filter((t) => t.status === key);
 
           return (
-            <div key={status} className={styles.column}>
+            <div key={key} className={styles.column}>
               <div className={styles.colHead}>
-                <span className={`${styles.colTitle} ${styles[colColour]}`}>
-                  {TASK_STATUS_LABELS[status]}
-                </span>
+                <span className={`${styles.colTitle} ${styles[colour]}`}>{label}</span>
                 <span className={styles.colCount}>{columnTasks.length}</span>
               </div>
 
               <div className={styles.cardList}>
                 {columnTasks.length === 0 && (
-                  <div className={styles.emptyCol}>No {TASK_STATUS_LABELS[status].toLowerCase()} tasks</div>
+                  <div className={styles.emptyCol}>No {label.toLowerCase()} tasks</div>
                 )}
 
                 {columnTasks.map((task) => (
                   <div key={task.id} className={styles.taskCard}>
                     <div className={styles.taskCode}>{task.taskCode}</div>
                     <div className={styles.taskMeta}>
-                      {task.driver?.name} · {task.area?.name}
+                      {driverName(task)} · {task.pickupAddress}
                     </div>
                     <div className={styles.taskFoot}>
-                      <Badge colour={CATEGORY_COLOUR[task.category]}>
-                        {CATEGORY_LABEL[task.category]}
+                      <Badge colour={CATEGORY_COLOUR[task.category] ?? 'gray'}>
+                        {CATEGORY_LABEL[task.category] ?? task.category}
                       </Badge>
                       <span className={styles.taskValue}>
-                        {formatCurrency(task.finalPrice)}
+                        {formatCurrency(task.totalFare ?? 0)}
                       </span>
                     </div>
 
-                    {/* Status progression controls — only shown for non-cancelled tasks */}
-                    {user?.role !== ROLES.ADMIN && status !== 'cancelled' && status !== 'completed' && (
+                    {user?.role !== ROLES.ADMIN && key !== 'cancelled' && key !== 'delivered' && (
                       <div className={styles.taskActions}>
-                        {status === 'assigned' && (
-                          <button className={styles.progressBtn} onClick={() => handleStatusChange(task, 'in_progress')}>
+                        {key === 'assigned' && (
+                          <button className={styles.progressBtn} onClick={() => handleStatusChange(task, 'in-transit')}>
                             Start →
                           </button>
                         )}
-                        {status === 'in_progress' && (
-                          <button className={styles.progressBtn} onClick={() => handleStatusChange(task, 'completed')}>
+                        {key === 'in-transit' && (
+                          <button className={styles.progressBtn} onClick={() => handleStatusChange(task, 'delivered')}>
                             Complete ✓
                           </button>
                         )}

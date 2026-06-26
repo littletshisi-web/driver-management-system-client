@@ -4,6 +4,8 @@ import AdminLayout from './layouts/AdminLayout.jsx';
 import PartnerLayout from './layouts/PartnerLayout.jsx';
 import DriverLayout from './layouts/DriverLayout.jsx';
 import Login from './pages/Login.jsx';
+import Register from './pages/Register.jsx';
+import VerifyEmail from './pages/VerifyEmail.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Drivers from './pages/Drivers.jsx';
 import Partners from './pages/Partners.jsx';
@@ -52,8 +54,10 @@ function RoleLayout() {
 export default function App() {
   return (
     <Routes>
-      {/* Public route */}
+      {/* Public routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
 
       {/* Protected shell — picks layout by role */}
       <Route

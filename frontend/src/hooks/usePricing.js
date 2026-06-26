@@ -17,7 +17,7 @@ export function usePricing() {
         setRules(MOCK_PRICING);
       } else {
         const res = await getPricingRules();
-        setRules(res.data);
+        setRules(res.data.data);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load pricing rules');

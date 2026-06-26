@@ -3,6 +3,10 @@ const { sequelize } = require('../config/db');
 
 const Driver = sequelize.define('Driver', {
   id:           { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  // ✅ Links this Driver record to the User who logs in (auth table).
+  // Nullable because a Driver could theoretically be created by an admin
+  // before the person ever registers an account.
+  userId:       { type: DataTypes.UUID, allowNull: true, unique: true, references: { model: 'Users', key: 'id' } },
   firstName:    { type: DataTypes.STRING, allowNull: false },
   lastName:     { type: DataTypes.STRING, allowNull: false },
   phone:        { type: DataTypes.STRING, allowNull: false, unique: true },
@@ -27,7 +31,7 @@ const Driver = sequelize.define('Driver', {
   // Avatar / photo
   photoUrl:     { type: DataTypes.STRING },
 }, {
-  indexes: [{ fields: ['zone'] }, { fields: ['status'] }, { fields: ['partnerId'] }],
+  indexes: [{ fields: ['zone'] }, { fields: ['status'] }, { fields: ['partnerId'] }, { fields: ['userId'] }],
 });
 
 module.exports = Driver;

@@ -1,55 +1,116 @@
+import { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { exportReport } from '../api/reportApi.js';
 import { downloadBlob } from '../utils/downloadBlob.js';
 import { formatCurrency } from '../utils/formatCurrency.js';
 import { ROLES } from '../constants/roles.js';
+import api from '../api/axiosInstance.js';
 import PageShell from '../components/layout/PageShell.jsx';
 import StatCard from '../components/dashboard/StatCard.jsx';
 import TableCard from '../components/tables/TableCard.jsx';
 import Badge from '../components/common/Badge.jsx';
 import Button from '../components/common/Button.jsx';
+import Spinner from '../components/common/Spinner.jsx';
 import styles from './Reports.module.css';
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-
-// TODO: Replace with GET /api/reports/earnings
-const MOCK_EARNINGS = [
-  { id: 1, name: 'Lebo Mokoena',   initials: 'LM', tasks: 34, parcel: 18, towing: 8,  furniture: 8, total: 12450, partner: 'FastMove',  colour: 'blue'   },
-  { id: 2, name: 'Thabo Nkosi',    initials: 'TN', tasks: 28, parcel: 12, towing: 10, furniture: 6, total: 10890, partner: 'FastMove',  colour: 'purple' },
-  { id: 3, name: 'Priya Singh',    initials: 'PS', tasks: 22, parcel: 20, towing: 1,  furniture: 1, total: 7340,  partner: 'QuickHaul', colour: 'teal'   },
-  { id: 4, name: 'Kobus Du Toit',  initials: 'KD', tasks: 19, parcel: 5,  towing: 12, furniture: 2, total: 15120, partner: null,         colour: 'amber'  },
-];
-
+const AVATAR_COLOURS = ['blue', 'purple', 'teal', 'amber', 'red', 'green'];
 const AVATAR_STYLES = {
   blue:   { background: 'var(--accent-light)', color: 'var(--accent)',  border: 'rgba(30,58,95,0.2)'  },
   purple: { background: 'var(--purple-bg)',    color: 'var(--purple)',  border: 'rgba(74,32,128,0.2)' },
   teal:   { background: 'var(--teal-bg)',      color: 'var(--teal)',    border: 'rgba(13,92,92,0.2)'  },
   amber:  { background: 'var(--amber-bg)',     color: 'var(--amber)',   border: 'rgba(138,90,0,0.2)'  },
+  red:    { background: 'var(--red-bg)',       color: 'var(--red)',     border: 'rgba(139,26,26,0.2)' },
+  green:  { background: 'var(--green-bg)',     color: 'var(--green)',   border: 'rgba(26,107,60,0.2)' },
 };
 
+const avatarColour = (id) => {
+  const str = String(id ?? '');
+  const hash = str.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return AVATAR_COLOURS[hash % AVATAR_COLOURS.length];
+};
+
+function monthRange() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  return { from: start.toISOString(), to: end.toISOString() };
+}
+
+const MONTH_LABEL = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+
 export default function Reports() {
-  const toast  = useToast();
+  const toast    = useToast();
   const { user } = useAuth();
+
+  const [earnings, setEarnings]   = useState([]);
+  const [summary, setSummary]     = useState({ gross: 0, taskCount: 0, avgValue: 0, activeDrivers: 0 });
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const { from, to } = monthRange();
+
+        const [earningsRes, tasksRes, driversRes] = await Promise.all([
+          api.get(`/reports/earnings?from=${from}&to=${to}`),
+          api.get(`/reports/tasks?from=${from}&to=${to}`),
+          api.get('/drivers/stats'),
+        ]);
+
+        const earningsData = earningsRes.data.data ?? [];
+        const gross        = earningsRes.data.totals?.gross ?? 0;
+        const taskSummary  = tasksRes.data.summary ?? {};
+        const activeDrivers = driversRes.data.data?.active ?? 0;
+
+        // Group earnings by driver
+        const byDriver = {};
+        earningsData.forEach((e) => {
+          const id = e.driverId;
+          if (!byDriver[id]) {
+            byDriver[id] = {
+              id,
+              name: e.Driver ? `${e.Driver.firstName} ${e.Driver.lastName}`.trim() : 'Unknown',
+              gross: 0,
+              taskCount: 0,
+            };
+          }
+          byDriver[id].gross += e.amount || 0;
+          byDriver[id].taskCount += 1;
+        });
+
+        const rows = Object.values(byDriver);
+        const avgValue = taskSummary.total > 0 ? Math.round(gross / taskSummary.total) : 0;
+
+        setEarnings(rows);
+        setSummary({
+          gross,
+          taskCount: taskSummary.completed ?? 0,
+          avgValue,
+          activeDrivers,
+        });
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load report data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [user?.role]);
 
   const handleExport = async (type) => {
     try {
-      if (USE_MOCK) {
-        toast(`Mock export: ${type.toUpperCase()} download would start here`);
-        return;
-      }
-      const res = await exportReport(type, { from: '2025-05-01', to: '2025-05-31' });
+      const res = await exportReport(type, { from: monthRange().from, to: monthRange().to });
       downloadBlob(res.data, `dms-report-${Date.now()}.${type}`);
       toast(`${type.toUpperCase()} exported successfully`);
     } catch {
       toast('Export failed — please try again', 'error');
     }
   };
-
-  // Drivers only see their own row
-  const rows = user?.role === ROLES.DRIVER
-    ? MOCK_EARNINGS.filter((r) => r.id === 3) // simulate driver's own record
-    : MOCK_EARNINGS;
 
   return (
     <PageShell
@@ -70,55 +131,56 @@ export default function Reports() {
     >
       {/* Summary stats */}
       <div className={styles.statGrid}>
-        <StatCard label="Monthly Earnings" value="R 84,320"  sub="↑ 12% vs last month" colour="green"  />
-        <StatCard label="Tasks Completed"  value="218"       sub="This month"           colour="blue"   />
-        <StatCard label="Avg Task Value"   value="R 387"     sub="All categories"       colour="amber"  />
-        <StatCard label="Active Drivers"   value="19"        sub="Of 24 registered"     colour="purple" />
+        <StatCard label="Monthly Earnings"  value={formatCurrency(summary.gross)}      sub={MONTH_LABEL}        colour="green"  />
+        <StatCard label="Tasks Completed"   value={String(summary.taskCount)}           sub="This month"         colour="blue"   />
+        <StatCard label="Avg Task Value"    value={formatCurrency(summary.avgValue)}    sub="All categories"     colour="amber"  />
+        <StatCard label="Active Drivers"    value={String(summary.activeDrivers)}       sub="Currently active"   colour="purple" />
       </div>
 
       {/* Earnings table */}
-      <TableCard title="Driver earnings — May 2025">
-        <table>
-          <thead>
-            <tr>
-              <th>Driver</th>
-              <th>Total Tasks</th>
-              <th>Parcel</th>
-              <th>Towing</th>
-              <th>Furniture</th>
-              <th>Gross Earnings</th>
-              <th>Partner</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const av = AVATAR_STYLES[r.colour] ?? AVATAR_STYLES.blue;
-              return (
-                <tr key={r.id}>
-                  <td>
-                    <div className={styles.driverCell}>
-                      <div className={styles.avatar} style={{ background: av.background, color: av.color, borderColor: av.border }}>
-                        {r.initials}
+      <TableCard title={`Driver earnings — ${MONTH_LABEL}`}>
+        {loading ? (
+          <div style={{ padding: '2rem', display: 'flex', justifyContent: 'center' }}>
+            <Spinner size={24} />
+          </div>
+        ) : error ? (
+          <div style={{ padding: '1.5rem', color: 'var(--red)' }}>{error}</div>
+        ) : earnings.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            No earnings recorded this month.
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Driver</th>
+                <th>Tasks</th>
+                <th>Gross Earnings</th>
+              </tr>
+            </thead>
+            <tbody>
+              {earnings.map((r) => {
+                const ac = avatarColour(r.id);
+                const av = AVATAR_STYLES[ac] ?? AVATAR_STYLES.blue;
+                const initials = r.name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+                return (
+                  <tr key={r.id}>
+                    <td>
+                      <div className={styles.driverCell}>
+                        <div className={styles.avatar} style={{ background: av.background, color: av.color, borderColor: av.border }}>
+                          {initials}
+                        </div>
+                        <span className={styles.driverName}>{r.name}</span>
                       </div>
-                      <span className={styles.driverName}>{r.name}</span>
-                    </div>
-                  </td>
-                  <td>{r.tasks}</td>
-                  <td>{r.parcel}</td>
-                  <td>{r.towing}</td>
-                  <td>{r.furniture}</td>
-                  <td><strong className={styles.earning}>{formatCurrency(r.total)}</strong></td>
-                  <td>
-                    {r.partner
-                      ? <Badge colour="blue">{r.partner}</Badge>
-                      : <Badge colour="gray">Unpartnered</Badge>
-                    }
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+                    <td>{r.taskCount}</td>
+                    <td><strong className={styles.earning}>{formatCurrency(r.gross)}</strong></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </TableCard>
     </PageShell>
   );

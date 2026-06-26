@@ -4,21 +4,14 @@ import styles from './Form.module.css';
 import { validateTask, isValid } from '../../utils/validation.js';
 import { TASK_CATEGORIES } from '../../constants/taskCategories.js';
 
-/**
- * Props:
- *   drivers   Driver[] — available drivers (status: available)
- *   areas     Area[]   — from useAreas()
- *   onSubmit  function — called with validated form data
- *   loading   boolean
- */
 export default function TaskForm({ drivers = [], areas = [], onSubmit, loading }) {
   const [form, setForm] = useState({
-    category:        '',
-    driverId:        '',
-    areaId:          '',
-    distanceKm:      '',
-    pickupAddress:   '',
-    deliveryAddress: '',
+    category:       '',
+    driverId:       '',
+    areaId:         '',
+    distanceKm:     '',
+    pickupAddress:  '',
+    dropoffAddress: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -28,7 +21,7 @@ export default function TaskForm({ drivers = [], areas = [], onSubmit, loading }
     const errs = validateTask({ ...form, distanceKm: Number(form.distanceKm) });
     if (!isValid(errs)) { setErrors(errs); return; }
     setErrors({});
-    onSubmit({ ...form, distanceKm: Number(form.distanceKm), driverId: Number(form.driverId), areaId: Number(form.areaId) });
+    onSubmit({ ...form, distanceKm: Number(form.distanceKm) });
   };
 
   return (
@@ -42,19 +35,20 @@ export default function TaskForm({ drivers = [], areas = [], onSubmit, loading }
             ))}
           </select>
         </FormField>
-        <FormField label="Assign Driver" error={errors.driverId} required>
-          {/* Filtered to available drivers — GET /api/drivers?status=available */}
+        <FormField label="Assign Driver" error={errors.driverId}>
           <select value={form.driverId} onChange={set('driverId')}>
             <option value="">Select driver…</option>
             {drivers.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
+              <option key={d.id} value={d.id}>
+                {`${d.firstName ?? ''} ${d.lastName ?? ''}`.trim() || 'Unknown'}
+              </option>
             ))}
           </select>
         </FormField>
       </div>
 
       <div className={styles.row}>
-        <FormField label="Pickup Area" error={errors.areaId} required>
+        <FormField label="Pickup Area" error={errors.areaId}>
           <select value={form.areaId} onChange={set('areaId')}>
             <option value="">Select area…</option>
             {areas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -72,8 +66,8 @@ export default function TaskForm({ drivers = [], areas = [], onSubmit, loading }
       </div>
 
       <div className={styles.singleField}>
-        <FormField label="Delivery / Drop-off Address" error={errors.deliveryAddress} required>
-          <input type="text" placeholder="Full delivery address" value={form.deliveryAddress} onChange={set('deliveryAddress')} />
+        <FormField label="Drop-off Address" error={errors.dropoffAddress} required>
+          <input type="text" placeholder="Full delivery address" value={form.dropoffAddress} onChange={set('dropoffAddress')} />
         </FormField>
       </div>
 

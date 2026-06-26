@@ -4,31 +4,11 @@
 //  Replace with real API calls as backend delivers endpoints.
 // ═══════════════════════════════════════════════════════
 
-export const MOCK_DRIVERS = [
-  { id: 1, name: 'Lebo Mokoena',   initials: 'LM', licenseNumber: 'GP12345678', vehicleType: 'Van',       vehicleReg: 'GP 123-456', area: { id: 1, name: 'Johannesburg CBD' }, partner: { id: 1, name: 'FastMove Logistics' }, availabilityStatus: 'available', phone: '+27 82 111 0001' },
-  { id: 2, name: 'Thabo Nkosi',    initials: 'TN', licenseNumber: 'GP87654321', vehicleType: 'Bakkie',    vehicleReg: 'GP 654-321', area: { id: 2, name: 'Sandton'           }, partner: { id: 1, name: 'FastMove Logistics' }, availabilityStatus: 'busy',      phone: '+27 82 111 0002' },
-  { id: 3, name: 'Priya Singh',    initials: 'PS', licenseNumber: 'WC11223344', vehicleType: 'Sedan',     vehicleReg: 'WC 112-233', area: { id: 4, name: 'East Rand'          }, partner: { id: 2, name: 'QuickHaul SA'       }, availabilityStatus: 'available', phone: '+27 82 111 0003' },
-  { id: 4, name: 'Kobus Du Toit',  initials: 'KD', licenseNumber: 'GP99887766', vehicleType: 'Tow Truck', vehicleReg: 'GP 998-877', area: { id: 5, name: 'West Rand'          }, partner: null,                                   availabilityStatus: 'available', phone: '+27 82 111 0004' },
-  { id: 5, name: 'Zanele Dube',    initials: 'ZD', licenseNumber: 'GP44556677', vehicleType: 'Truck',     vehicleReg: 'GP 445-566', area: { id: 3, name: 'Soweto'             }, partner: { id: 3, name: 'Metro Towing'       }, availabilityStatus: 'inactive',  phone: '+27 82 111 0005' },
-  { id: 6, name: 'Marco Ferreira', initials: 'MF', licenseNumber: 'GP33221100', vehicleType: 'Van',       vehicleReg: 'GP 332-211', area: { id: 1, name: 'Johannesburg CBD' }, partner: { id: 2, name: 'QuickHaul SA'       }, availabilityStatus: 'busy',      phone: '+27 82 111 0006' },
-];
+export const MOCK_DRIVERS = [];
 
-export const MOCK_PARTNERS = [
-  { id: 1, name: 'FastMove Logistics', contactName: 'Sarah Johnson',   email: 'sarah@fastmove.co.za',   phone: '+27 11 000 0001', commissionPct: 12, region: 'Gauteng', driverCount: 8,  activeTaskCount: 14 },
-  { id: 2, name: 'QuickHaul SA',       contactName: 'David Patel',     email: 'david@quickhaul.co.za',  phone: '+27 11 000 0002', commissionPct: 10, region: 'Gauteng', driverCount: 5,  activeTaskCount: 9  },
-  { id: 3, name: 'Metro Towing',       contactName: 'Anna van der Berg',email: 'anna@metrotowing.co.za', phone: '+27 11 000 0003', commissionPct: 15, region: 'Gauteng', driverCount: 4,  activeTaskCount: 3  },
-];
+export const MOCK_PARTNERS = [];
 
-export const MOCK_TASKS = [
-  { id: 1, taskCode: 'TSK-001', category: 'parcel_delivery',  driver: { id: 1, name: 'Lebo Mokoena'   }, area: { id: 1, name: 'CBD'       }, status: 'in_progress', finalPrice: 152,  pickupAddress: '12 Commissioner St', deliveryAddress: '45 Sandton Dr'    },
-  { id: 2, taskCode: 'TSK-002', category: 'vehicle_towing',   driver: { id: 4, name: 'Kobus Du Toit'  }, area: { id: 5, name: 'West Rand' }, status: 'assigned',    finalPrice: 890,  pickupAddress: '8 Hendrik Rd',       deliveryAddress: '2 Kruger Ave'      },
-  { id: 3, taskCode: 'TSK-003', category: 'furniture_moving', driver: { id: 2, name: 'Thabo Nkosi'    }, area: { id: 2, name: 'Sandton'  }, status: 'completed',   finalPrice: 620,  pickupAddress: '99 Rivonia Rd',      deliveryAddress: '14 Braamfontein St' },
-  { id: 4, taskCode: 'TSK-004', category: 'parcel_delivery',  driver: { id: 3, name: 'Priya Singh'    }, area: { id: 4, name: 'East Rand' }, status: 'assigned',    finalPrice: 98,   pickupAddress: '3 Van Riebeeck Rd',  deliveryAddress: '7 Springs Ave'     },
-  { id: 5, taskCode: 'TSK-005', category: 'vehicle_towing',   driver: { id: 6, name: 'Marco Ferreira' }, area: { id: 1, name: 'CBD'       }, status: 'in_progress', finalPrice: 1240, pickupAddress: '55 Noord St',        deliveryAddress: '102 Booysens Rd'   },
-  { id: 6, taskCode: 'TSK-006', category: 'furniture_moving', driver: { id: 1, name: 'Lebo Mokoena'  }, area: { id: 1, name: 'CBD'       }, status: 'completed',   finalPrice: 480,  pickupAddress: '18 Market St',       deliveryAddress: '30 Rissik St'      },
-  { id: 7, taskCode: 'TSK-007', category: 'parcel_delivery',  driver: { id: 5, name: 'Zanele Dube'    }, area: { id: 3, name: 'Soweto'    }, status: 'cancelled',   finalPrice: 75,   pickupAddress: '6 Vilakazi St',      deliveryAddress: '12 Chris Hani Rd'  },
-  { id: 8, taskCode: 'TSK-008', category: 'parcel_delivery',  driver: { id: 2, name: 'Thabo Nkosi'    }, area: { id: 2, name: 'Sandton'   }, status: 'assigned',    finalPrice: 110,  pickupAddress: '22 Alice Lane',      deliveryAddress: '5 Maude St'        },
-];
+export const MOCK_TASKS = [];
 
 export const MOCK_AREAS = [
   { id: 1, name: 'Johannesburg CBD', region: 'Gauteng', priceModifier: 1.2, zoneType: 'Extended', driverCount: 5 },

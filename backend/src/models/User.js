@@ -8,9 +8,14 @@ const User = sequelize.define('User', {
   name:     { type: DataTypes.STRING, allowNull: false },
   email:    { type: DataTypes.STRING, allowNull: false, unique: true, validate: { isEmail: true } },
   password: { type: DataTypes.STRING, allowNull: false },
-  role:     { type: DataTypes.ENUM('admin', 'manager', 'viewer'), defaultValue: 'viewer' },
+  role:     { type: DataTypes.ENUM('admin', 'partner', 'driver'), defaultValue: 'driver' },
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
   lastLogin:{ type: DataTypes.DATE },
+
+  // ✅ Email verification fields
+  isVerified:            { type: DataTypes.BOOLEAN, defaultValue: false },
+  verificationToken:     { type: DataTypes.STRING },
+  verificationTokenExpires: { type: DataTypes.DATE },
 }, {
   hooks: {
     beforeCreate: async (user) => { user.password = await bcrypt.hash(user.password, 12); },

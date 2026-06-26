@@ -12,6 +12,8 @@ const Report = require('./Report');
 const Area = require('./Area');
 const AuditLog = require('./AuditLog');
 const User = require('./User');
+const PricingConfig = require('./PricingConfig');
+// No associations needed — it's a standalone singleton table
 
 // Partner ↔ Driver
 Partner.hasMany(Driver, { foreignKey: 'partnerId' });
@@ -32,6 +34,10 @@ Earnings.belongsTo(Driver, { foreignKey: 'driverId' });
 // Task ↔ Earnings
 Task.hasOne(Earnings, { foreignKey: 'taskId' });
 Earnings.belongsTo(Task, { foreignKey: 'taskId' });
+
+// User ↔ Driver  ✅ NEW — links the auth/login User to their operational Driver record
+User.hasOne(Driver, { foreignKey: 'userId' });
+Driver.belongsTo(User, { foreignKey: 'userId' });
 
 // User → Reports (generatedBy)
 User.hasMany(Report, { foreignKey: 'generatedBy' });

@@ -2,6 +2,18 @@
 const Partner = require('../models/Partner');
 const Driver  = require('../models/Driver');
 
+// Maps frontend form fields to Partner model fields
+const mapFormToModel = (body) => ({
+  name:           body.name,
+  contactName:    body.contactName,
+  contactEmail:   body.email        ?? body.contactEmail,
+  contactPhone:   body.phone        ?? body.contactPhone,
+  commissionRate: body.commissionPct ?? body.commissionRate,
+  status:         body.status       ?? 'active',
+  type:           body.type         ?? 'general',
+  zones:          body.zones        ?? [],
+});
+
 const getAll = async (req, res, next) => {
   try {
     const { status, type } = req.query;
@@ -25,7 +37,7 @@ const getOne = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    const partner = await Partner.create(req.body);
+    const partner = await Partner.create(mapFormToModel(req.body));
     res.status(201).json({ success: true, data: partner });
   } catch (err) { next(err); }
 };
@@ -34,7 +46,7 @@ const update = async (req, res, next) => {
   try {
     const partner = await Partner.findByPk(req.params.id);
     if (!partner) return res.status(404).json({ success: false, message: 'Partner not found' });
-    await partner.update(req.body);
+    await partner.update(mapFormToModel(req.body));
     res.json({ success: true, data: partner });
   } catch (err) { next(err); }
 };
@@ -58,4 +70,14 @@ const getPartnerDrivers = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getOne, create, update, remove, getPartnerDrivers };
+const getStats = async (req, res, next) => {
+  try {
+    const [total, active] = await Promise.all([
+      Partner.count(),
+      Partner.count({ where: { status: 'active' } }),
+    ]);
+    res.json({ success: true, data: { total, active } });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAll, getOne, create, update, remove, getPartnerDrivers, getStats };

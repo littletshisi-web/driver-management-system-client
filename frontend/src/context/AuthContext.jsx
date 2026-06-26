@@ -18,7 +18,9 @@ export function AuthProvider({ children }) {
       return;
     }
     getMe()
-      .then((res) => setUser(res.data))
+      // ✅ /api/auth/me returns { success: true, user: {...} } — unwrap .user,
+      // not the whole wrapper object, or role checks downstream silently fail.
+      .then((res) => setUser(res.data.user))
       .catch(() => {
         localStorage.removeItem('dms_token');
       })

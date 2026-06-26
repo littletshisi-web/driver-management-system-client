@@ -2,9 +2,11 @@
 const Joi = require('joi');
 
 const createTaskSchema = Joi.object({
-  type:           Joi.string().valid('food', 'parcels', 'grocery', 'other').required(),
-  driverId:       Joi.string().uuid().required(),
+  category:       Joi.string().valid('parcel_delivery', 'vehicle_towing', 'furniture_moving').required(),
+  type:           Joi.string().valid('food', 'parcels', 'grocery', 'other'), // kept for backward compat
+  driverId:       Joi.string().uuid(),
   partnerId:      Joi.string().uuid(),
+  areaId:         Joi.string().uuid(),
   pickupAddress:  Joi.string().required(),
   pickupLat:      Joi.number(),
   pickupLng:      Joi.number(),
@@ -15,7 +17,7 @@ const createTaskSchema = Joi.object({
   baseFare:       Joi.number().min(0),
   perKmRate:      Joi.number().min(0),
   pickupTime:     Joi.date().iso(),
-  notes:          Joi.string().max(500),
+  notes:          Joi.string().max(500).allow(''),
 });
 
 module.exports = { createTaskSchema };

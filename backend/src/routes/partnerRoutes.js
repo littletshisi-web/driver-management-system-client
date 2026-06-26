@@ -6,11 +6,15 @@ const { authorize } = require('../middleware/roleMiddleware');
 const { audit } = require('../middleware/auditMiddleware');
 
 router.use(protect);
-router.get('/',       c.getAll);
-router.get('/:id',    c.getOne);
-router.get('/:id/drivers', c.getPartnerDrivers);
-router.post('/',      authorize('admin','manager'), audit('CREATE','Partner'), c.create);
-router.put('/:id',    authorize('admin','manager'), audit('UPDATE','Partner'), c.update);
-router.delete('/:id', authorize('admin'),           audit('DELETE','Partner'), c.remove);
+
+// Dashboard stats — must be before /:id to avoid route conflict
+router.get('/stats', authorize('admin', 'manager'), c.getStats);
+
+router.get('/',              c.getAll);
+router.get('/:id',           c.getOne);
+router.get('/:id/drivers',   c.getPartnerDrivers);
+router.post('/',             authorize('admin', 'manager'), audit('CREATE', 'Partner'), c.create);
+router.put('/:id',           authorize('admin', 'manager'), audit('UPDATE', 'Partner'), c.update);
+router.delete('/:id',        authorize('admin'),             audit('DELETE', 'Partner'), c.remove);
 
 module.exports = router;

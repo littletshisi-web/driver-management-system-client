@@ -33,10 +33,10 @@ const NAV_GROUPS = [
   {
     label: 'Management',
     items: [
-      { to: '/drivers',  label: 'Drivers',  icon: <IconDrivers />,  badge: 24 },
+      { to: '/drivers',  label: 'Drivers',  icon: <IconDrivers />  },
       { to: '/partners', label: 'Partners', icon: <IconPartners /> },
-      { to: '/tasks',    label: 'Tasks',    icon: <IconTasks />,    badge: 7, badgeVariant: 'warn' },
-      { to: '/areas',    label: 'Areas',    icon: <IconAreas /> },
+      { to: '/tasks',    label: 'Tasks',    icon: <IconTasks />    },
+      { to: '/areas',    label: 'Areas',    icon: <IconAreas />    },
     ],
   },
   {

@@ -7,16 +7,20 @@ import styles from './DonutChart.module.css';
 export default function DonutChart({ segments = [] }) {
   if (!segments.length) return null;
 
-  const total  = segments.reduce((acc, s) => acc + s.value, 0);
-  const r      = 40;
-  const cx     = 55;
-  const cy     = 55;
-  const circ   = 2 * Math.PI * r;
+  // API sends { label, value (%), count, colour }
+  // Use `count` for accurate slice sizing; fall back to `value` if count absent
+  const totalCount = segments.reduce((acc, s) => acc + (s.count ?? s.value), 0);
+
+  const r    = 40;
+  const cx   = 55;
+  const cy   = 55;
+  const circ = 2 * Math.PI * r;
 
   let offset = 0;
   const slices = segments.map((seg) => {
-    const dash  = (seg.value / total) * circ;
-    const gap   = circ - dash;
+    const raw  = seg.count ?? seg.value;
+    const dash = totalCount > 0 ? (raw / totalCount) * circ : 0;
+    const gap  = circ - dash;
     const slice = { ...seg, dash, gap, offset };
     offset -= dash;
     return slice;
@@ -45,13 +49,17 @@ export default function DonutChart({ segments = [] }) {
       </svg>
 
       <div className={styles.legend}>
-        {segments.map((s, i) => (
-          <div key={i} className={styles.item}>
-            <span className={styles.dot} style={{ background: s.colour }} />
-            <span className={styles.lbl}>{s.label}</span>
-            <span className={styles.val}>{Math.round((s.value / total) * 100)}%</span>
-          </div>
-        ))}
+        {segments.map((s, i) => {
+          const raw = s.count ?? s.value;
+          const pct = totalCount > 0 ? Math.round((raw / totalCount) * 100) : 0;
+          return (
+            <div key={i} className={styles.item}>
+              <span className={styles.dot} style={{ background: s.colour }} />
+              <span className={styles.lbl}>{s.label}</span>
+              <span className={styles.val}>{pct}%</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

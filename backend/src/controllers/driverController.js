@@ -102,4 +102,16 @@ const removePartner = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getOne, create, update, remove, uploadDoc, suspend, assignPartner, removePartner };
+// GET /api/drivers/stats
+// Returns total driver count and active driver count for the dashboard.
+const getStats = async (req, res, next) => {
+  try {
+    const [total, active] = await Promise.all([
+      Driver.count(),
+      Driver.count({ where: { status: 'active' } }),
+    ]);
+    res.json({ success: true, data: { total, active } });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAll, getOne, create, update, remove, uploadDoc, suspend, assignPartner, removePartner, getStats };
