@@ -1,0 +1,6 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/danigrou/api.danigroup.co.za
+    - /bin/cp -r backend/. $DEPLOYPATH
+    - /bin/cp -r frontend/dist/. /home/danigrou/dms.danigroup.co.za
