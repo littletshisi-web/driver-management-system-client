@@ -2,10 +2,11 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import styles from './Sidebar.module.css';
 
-function NavItem({ to, icon, children, badge, badgeVariant = 'primary' }) {
+function NavItem({ to, icon, children, badge, badgeVariant = 'primary', onClick }) {
   return (
     <NavLink
       to={to}
+      onClick={onClick}
       className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
     >
       <span className={styles.navIcon}>{icon}</span>
@@ -23,7 +24,7 @@ function SectionLabel({ children }) {
   return <div className={styles.sectionLabel}>{children}</div>;
 }
 
-export default function Sidebar({ navGroups }) {
+export default function Sidebar({ navGroups, open, onClose }) {
   const { user, logout } = useAuth();
 
   const initials = user?.name
@@ -31,7 +32,7 @@ export default function Sidebar({ navGroups }) {
     : '??';
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${open ? styles.sidebarOpen : ''}`}>
       {/* Logo */}
       <div className={styles.logo}>
         <div className={styles.logoIcon}>
@@ -46,6 +47,12 @@ export default function Sidebar({ navGroups }) {
           DMS
           <span>Driver Management</span>
         </div>
+        {/* Close button on mobile */}
+        <button className={styles.closeBtn} onClick={onClose} aria-label="Close menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={18} height={18}>
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
 
       {/* Navigation groups */}
@@ -60,6 +67,7 @@ export default function Sidebar({ navGroups }) {
                 icon={item.icon}
                 badge={item.badge}
                 badgeVariant={item.badgeVariant}
+                onClick={onClose}
               >
                 {item.label}
               </NavItem>
@@ -74,7 +82,7 @@ export default function Sidebar({ navGroups }) {
           <div className={styles.avatar}>{initials}</div>
           <div className={styles.userInfo}>
             <div className={styles.userName}>{user?.name}</div>
-            <div className={styles.userRole}>{user?.role}</div>
+            <div className={styles.userRole}>{user?.role?.toUpperCase()}</div>
           </div>
           <button className={styles.logoutBtn} onClick={logout} title="Sign out">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={14} height={14}>

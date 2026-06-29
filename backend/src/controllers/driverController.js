@@ -2,6 +2,10 @@
 const { Op } = require('sequelize');
 const Driver  = require('../models/Driver');
 const Partner = require('../models/Partner');
+const {
+  sendDriverSuspendedEmail,
+  sendDriverAssignedEmail,
+} = require('../services/emailService');
 
 const getAll = async (req, res, next) => {
   try {
@@ -79,6 +83,17 @@ const suspend = async (req, res, next) => {
     const driver = await Driver.findByPk(req.params.id);
     if (!driver) return res.status(404).json({ success: false, message: 'Driver not found' });
     await driver.update({ status: 'inactive' });
+
+    // Notify driver of suspension
+    try {
+      if (driver.email) {
+        const name = `${driver.firstName} ${driver.lastName}`.trim();
+        await sendDriverSuspendedEmail(driver.email, name);
+      }
+    } catch (emailErr) {
+      console.error('Driver suspended email failed:', emailErr.message);
+    }
+
     res.json({ success: true, data: driver });
   } catch (err) { next(err); }
 };
@@ -89,6 +104,20 @@ const assignPartner = async (req, res, next) => {
     if (!driver) return res.status(404).json({ success: false, message: 'Driver not found' });
     const { partnerId } = req.body;
     await driver.update({ partnerId });
+
+    // Notify driver of partner assignment
+    try {
+      if (driver.email && partnerId) {
+        const partner = await Partner.findByPk(partnerId, { attributes: ['name'] });
+        if (partner) {
+          const driverName = `${driver.firstName} ${driver.lastName}`.trim();
+          await sendDriverAssignedEmail(driver.email, driverName, partner.name);
+        }
+      }
+    } catch (emailErr) {
+      console.error('Driver assigned email failed:', emailErr.message);
+    }
+
     res.json({ success: true, data: driver });
   } catch (err) { next(err); }
 };
@@ -102,8 +131,6 @@ const removePartner = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// GET /api/drivers/stats
-// Returns total driver count and active driver count for the dashboard.
 const getStats = async (req, res, next) => {
   try {
     const [total, active] = await Promise.all([

@@ -7,6 +7,10 @@ const generateTaskCode  = require('../utils/generateTaskCode');
 const calculateDistance = require('../utils/calculateDistance');
 const pricingService    = require('../services/pricingService');
 const earningsService   = require('../services/earningsService');
+const {
+  sendTaskAssignedEmail,
+  sendTaskCompletedEmail,
+} = require('../services/emailService');
 const { Op } = require('sequelize');
 
 const getAll = async (req, res, next) => {
@@ -51,6 +55,23 @@ const create = async (req, res, next) => {
       distanceKm = calculateDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
     const totalFare = pricingService.calculate(baseFare || 35, perKmRate || 12, distanceKm || 0);
     const task = await Task.create({ ...req.body, taskCode: generateTaskCode(), distanceKm, totalFare });
+
+    // Send assignment email if driver is set at creation time
+    if (task.driverId) {
+      try {
+        const driver = await Driver.findByPk(task.driverId);
+        if (driver?.email) {
+          await sendTaskAssignedEmail(
+            driver.email,
+            `${driver.firstName} ${driver.lastName}`.trim(),
+            task
+          );
+        }
+      } catch (emailErr) {
+        console.error('Task assigned email failed:', emailErr.message);
+      }
+    }
+
     res.status(201).json({ success: true, data: task });
   } catch (err) { next(err); }
 };
@@ -58,14 +79,38 @@ const create = async (req, res, next) => {
 const updateStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
-    const task = await Task.findByPk(req.params.id);
+    const task = await Task.findByPk(req.params.id, {
+      include: [
+        { model: Driver,  attributes: ['id', 'firstName', 'lastName', 'email'] },
+        { model: Partner, attributes: ['id', 'name', 'contactEmail'] },
+      ],
+    });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+
     const updates = { status };
     if (status === 'delivered') {
       updates.deliveredAt = new Date();
       await earningsService.recordEarning(task);
       await Driver.increment('totalTrips', { where: { id: task.driverId } });
+
+      // Notify partner that task is complete
+      try {
+        if (task.Partner?.contactEmail) {
+          const driverName = task.Driver
+            ? `${task.Driver.firstName} ${task.Driver.lastName}`.trim()
+            : 'Unknown Driver';
+          await sendTaskCompletedEmail(
+            task.Partner.contactEmail,
+            task.Partner.name,
+            task,
+            driverName
+          );
+        }
+      } catch (emailErr) {
+        console.error('Task completed email failed:', emailErr.message);
+      }
     }
+
     await task.update(updates);
     res.json({ success: true, data: task });
   } catch (err) { next(err); }
@@ -77,6 +122,21 @@ const assignDriver = async (req, res, next) => {
     const task = await Task.findByPk(req.params.id);
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
     await task.update({ driverId, status: 'assigned' });
+
+    // Notify driver of assignment
+    try {
+      const driver = await Driver.findByPk(driverId);
+      if (driver?.email) {
+        await sendTaskAssignedEmail(
+          driver.email,
+          `${driver.firstName} ${driver.lastName}`.trim(),
+          task
+        );
+      }
+    } catch (emailErr) {
+      console.error('Task assigned email failed:', emailErr.message);
+    }
+
     res.json({ success: true, data: task });
   } catch (err) { next(err); }
 };
@@ -94,7 +154,6 @@ const getStats = async (req, res, next) => {
 };
 
 // GET /api/tasks/stats-by-category
-// Returns task counts grouped by category for the dashboard donut chart.
 const getStatsByCategory = async (req, res, next) => {
   try {
     const tasks = await Task.findAll({ attributes: ['category'] });

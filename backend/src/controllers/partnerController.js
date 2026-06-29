@@ -1,8 +1,8 @@
 // src/controllers/partnerController.js
 const Partner = require('../models/Partner');
 const Driver  = require('../models/Driver');
+const { sendPartnerWelcomeEmail } = require('../services/emailService');
 
-// Maps frontend form fields to Partner model fields
 const mapFormToModel = (body) => ({
   name:           body.name,
   contactName:    body.contactName,
@@ -38,6 +38,20 @@ const getOne = async (req, res, next) => {
 const create = async (req, res, next) => {
   try {
     const partner = await Partner.create(mapFormToModel(req.body));
+
+    // Send welcome email to partner contact
+    try {
+      if (partner.contactEmail) {
+        await sendPartnerWelcomeEmail(
+          partner.contactEmail,
+          partner.name,
+          partner.contactName || partner.name
+        );
+      }
+    } catch (emailErr) {
+      console.error('Partner welcome email failed:', emailErr.message);
+    }
+
     res.status(201).json({ success: true, data: partner });
   } catch (err) { next(err); }
 };

@@ -15,6 +15,39 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 const ZONE_COLOUR = { Standard: 'green', Extended: 'amber', Remote: 'red' };
 
+const PROVINCE_ORDER = [
+  'Gauteng',
+  'Western Cape',
+  'KwaZulu-Natal',
+  'Eastern Cape',
+  'Free State',
+  'Limpopo',
+  'Mpumalanga',
+  'North West',
+  'Northern Cape',
+];
+
+// Group areas by province, sorted by PROVINCE_ORDER
+const groupByProvince = (areas) => {
+  const map = {};
+  areas.forEach((a) => {
+    const prov = a.province || 'Other';
+    if (!map[prov]) map[prov] = [];
+    map[prov].push(a);
+  });
+
+  const ordered = [];
+  PROVINCE_ORDER.forEach((p) => {
+    if (map[p]) ordered.push({ province: p, areas: map[p] });
+  });
+  // Any province not in the order list goes at the end
+  Object.keys(map).forEach((p) => {
+    if (!PROVINCE_ORDER.includes(p)) ordered.push({ province: p, areas: map[p] });
+  });
+
+  return ordered;
+};
+
 export default function Areas() {
   const toast = useToast();
   const { areas, loading, error, refetch } = useAreas();
@@ -57,6 +90,8 @@ export default function Areas() {
     );
   }
 
+  const grouped = groupByProvince(areas);
+
   return (
     <PageShell
       title="Operational Areas"
@@ -72,21 +107,29 @@ export default function Areas() {
     >
       {error && <ErrorBanner message={error} onRetry={refetch} />}
 
-      <div className={styles.grid}>
-        {areas.map((area) => (
-          <div key={area.id} className={styles.card} onClick={() => openEdit(area)}>
-            <h4 className={styles.areaName}>{area.name}</h4>
-            <p className={styles.region}>{area.region}</p>
-            <div className={styles.footer}>
-              <span className={styles.driverCount}>{area.driverCount} drivers</span>
-              <Badge colour={ZONE_COLOUR[area.zoneType] ?? 'gray'}>{area.zoneType}</Badge>
-            </div>
-            <div className={styles.modifier}>
-              Price modifier <span className={styles.modValue}>×{area.priceModifier.toFixed(1)}</span>
-            </div>
+      {grouped.map(({ province, areas: provAreas }) => (
+        <div key={province} className={styles.provinceSection}>
+          <div className={styles.provinceHeader}>
+            <h3 className={styles.provinceTitle}>{province}</h3>
+            <span className={styles.provinceCount}>{provAreas.length} area{provAreas.length !== 1 ? 's' : ''}</span>
           </div>
-        ))}
-      </div>
+          <div className={styles.grid}>
+            {provAreas.map((area) => (
+              <div key={area.id} className={styles.card} onClick={() => openEdit(area)}>
+                <h4 className={styles.areaName}>{area.name}</h4>
+                <p className={styles.region}>{area.region}</p>
+                <div className={styles.footer}>
+                  <span className={styles.driverCount}>{area.driverCount ?? 0} drivers</span>
+                  <Badge colour={ZONE_COLOUR[area.zoneType] ?? 'gray'}>{area.zoneType ?? 'Standard'}</Badge>
+                </div>
+                <div className={styles.modifier}>
+                  Price modifier <span className={styles.modValue}>×{(area.priceModifier ?? 1).toFixed(1)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
 
       <Modal
         open={modalOpen}
