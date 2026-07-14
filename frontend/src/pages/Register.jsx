@@ -7,19 +7,19 @@ import styles from './Register.module.css';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
-// Roles selectable at registration. Admin is intentionally excluded —
-// it can only be granted by an existing admin via the role-management screen.
 const SELECTABLE_ROLES = [ROLES.DRIVER, ROLES.PARTNER];
 
 export default function Register() {
-  const [name, setName]         = useState('');
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName]             = useState('');
+  const [email, setEmail]           = useState('');
+  const [password, setPassword]     = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole]         = useState(ROLES.DRIVER);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
-  const [registered, setRegistered] = useState(false); // ✅ shows "check your email" state
+  const [role, setRole]             = useState(ROLES.DRIVER);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
+  const [registered, setRegistered] = useState(false);
+  const [showPassword, setShowPassword]         = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
@@ -42,8 +42,6 @@ export default function Register() {
     setLoading(true);
     setError('');
     try {
-      // ✅ No auto-login here — account is unverified until the user
-      // clicks the link emailed to them.
       await apiRegister(name, email, password, role);
       setRegistered(true);
     } catch (err) {
@@ -96,12 +94,6 @@ export default function Register() {
           <h2>Join the fleet.</h2>
           <p>Create an account to start managing driver operations, task assignment, and reporting — built for logistics teams that move fast.</p>
         </div>
-
-        <div className={styles.stats}>
-          <div className={styles.stat}><div className={styles.statNum}>24</div><div className={styles.statLbl}>Drivers</div></div>
-          <div className={styles.stat}><div className={styles.statNum}>3</div><div className={styles.statLbl}>Partners</div></div>
-          <div className={styles.stat}><div className={styles.statNum}>218</div><div className={styles.statLbl}>Tasks/month</div></div>
-        </div>
       </div>
 
       {/* Right panel — form */}
@@ -138,14 +130,37 @@ export default function Register() {
 
           <div className={styles.field}>
             <label className={styles.label}>Password</label>
-            <input
-              type="password"
-              className={styles.input}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoComplete="new-password"
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className={styles.input}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="new-password"
+                style={{ paddingRight: '2.5rem' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  color: '#94a3b8',
+                  fontSize: '0.8rem',
+                  userSelect: 'none',
+                }}
+                tabIndex={-1}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
             <span className={styles.hint}>
               8+ characters, with uppercase, lowercase, a number, and a symbol.
             </span>
@@ -153,14 +168,37 @@ export default function Register() {
 
           <div className={styles.field}>
             <label className={styles.label}>Confirm password</label>
-            <input
-              type="password"
-              className={styles.input}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoComplete="new-password"
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                className={styles.input}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="new-password"
+                style={{ paddingRight: '2.5rem' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((v) => !v)}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  color: '#94a3b8',
+                  fontSize: '0.8rem',
+                  userSelect: 'none',
+                }}
+                tabIndex={-1}
+              >
+                {showConfirmPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           <div className={styles.field}>

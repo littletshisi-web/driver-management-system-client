@@ -2,6 +2,7 @@
 const crypto = require('crypto');
 const User = require('../models/User');
 const Driver = require('../models/Driver');
+const Partner = require('../models/Partner');
 const { signToken, signRefreshToken, verifyRefreshToken } = require('../config/jwt');
 const { isValidEmailFormat, isValidEmailDeliverable } = require('../utils/emailValidator');
 const { sendVerificationEmail } = require('../services/emailService');
@@ -9,6 +10,42 @@ const { sendVerificationEmail } = require('../services/emailService');
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 const SELF_REGISTERABLE_ROLES = ['driver', 'partner'];
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// Finds the Partner record linked to this user, or creates one if it
+// doesn't exist yet (covers accounts registered before this link existed).
+const getOrCreatePartnerId = async (user) => {
+  if (user.role !== 'partner') return undefined;
+  let partner = await Partner.findOne({ where: { userId: user.id } });
+  if (!partner) {
+    partner = await Partner.create({
+      userId: user.id,
+      name: user.name,
+      contactName: user.name,
+      contactEmail: user.email,
+      contactPhone: `pending-${user.id}`,
+    });
+  }
+  return partner.id;
+};
+
+// Finds the Driver record linked to this user, or creates one if it
+// doesn't exist yet (covers accounts registered before this link existed).
+const getOrCreateDriverId = async (user) => {
+  if (user.role !== 'driver') return undefined;
+  let driver = await Driver.findOne({ where: { userId: user.id } });
+  if (!driver) {
+    const [firstName, ...rest] = user.name.trim().split(' ');
+    const lastName = rest.join(' ') || firstName;
+    driver = await Driver.create({
+      userId: user.id,
+      firstName,
+      lastName,
+      email: user.email,
+      phone: `pending-${user.id}`,
+    });
+  }
+  return driver.id;
+};
 
 const register = async (req, res, next) => {
   try {
@@ -56,6 +93,16 @@ const register = async (req, res, next) => {
         lastName,
         email: user.email,
         phone: `pending-${user.id}`,
+      });
+    }
+
+    if (user.role === 'partner') {
+      await Partner.create({
+        userId: user.id,
+        name: user.name,
+        contactName: user.name,
+        contactEmail: user.email,
+        contactPhone: `pending-${user.id}`,
       });
     }
 
@@ -150,12 +197,18 @@ const login = async (req, res, next) => {
     await user.update({ lastLogin: new Date() });
     const token        = signToken({ id: user.id, role: user.role });
     const refreshToken = signRefreshToken({ id: user.id });
+    const partnerId      = await getOrCreatePartnerId(user);
+    const driverId       = await getOrCreateDriverId(user);
 
     res.json({
       success: true,
       token,
       refreshToken,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user.id, name: user.name, email: user.email, role: user.role,
+        ...(partnerId && { partnerId }),
+        ...(driverId && { driverId }),
+      },
     });
   } catch (err) { next(err); }
 };
@@ -174,7 +227,15 @@ const refresh = async (req, res, next) => {
   } catch { res.status(401).json({ success: false, message: 'Invalid refresh token' }); }
 };
 
-const me = async (req, res) => res.json({ success: true, user: req.user });
+const me = async (req, res, next) => {
+  try {
+    const partnerId = await getOrCreatePartnerId(req.user);
+    const driverId  = await getOrCreateDriverId(req.user);
+    const extra = { ...(partnerId && { partnerId }), ...(driverId && { driverId }) };
+    const user = Object.keys(extra).length ? { ...req.user.toJSON(), ...extra } : req.user;
+    res.json({ success: true, user });
+  } catch (err) { next(err); }
+};
 
 const logout = async (req, res) => {
   res.json({ success: true, message: 'Logged out successfully' });

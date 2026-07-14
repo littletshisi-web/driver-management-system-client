@@ -4,6 +4,10 @@ const { sequelize } = require('../config/db');
 
 const Partner = sequelize.define('Partner', {
   id:             { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  // Links this Partner record to the User who logs in (auth table),
+  // mirroring the Driver.userId pattern. Nullable because a Partner
+  // could be created by an admin before the person ever registers.
+  userId:         { type: DataTypes.UUID, allowNull: true, unique: true, references: { model: 'Users', key: 'id' } },
   name:           { type: DataTypes.STRING, allowNull: false },
   tradingName:    { type: DataTypes.STRING },
   registrationNo: { type: DataTypes.STRING },

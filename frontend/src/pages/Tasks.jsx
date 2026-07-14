@@ -40,7 +40,7 @@ export default function Tasks() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving]       = useState(false);
 
-  const taskFilters = user?.role === ROLES.DRIVER ? { driverId: user.id } : {};
+  const taskFilters = user?.role === ROLES.DRIVER ? { driverId: user.driverId } : {};
   const { tasks, loading, error, refetch } = useTasks(taskFilters);
   const { drivers } = useDrivers({ status: 'available' });
   const { areas }   = useAreas();

@@ -15,8 +15,8 @@ router.get('/stats', authorize('admin', 'manager'), c.getStats);
 
 router.get('/',         c.getAll);
 router.get('/:id',      c.getOne);
-router.post('/',        authorize('admin','manager'), validate(createDriverSchema), audit('CREATE','Driver'), c.create);
-router.put('/:id',      authorize('admin','manager'), validate(updateDriverSchema), audit('UPDATE','Driver'), c.update);
+router.post('/',        authorize('admin','manager','partner'), validate(createDriverSchema), audit('CREATE','Driver'), c.create);
+router.put('/:id',      authorize('admin','manager','partner'), validate(updateDriverSchema), audit('UPDATE','Driver'), c.update);
 router.delete('/:id',   authorize('admin'),            audit('DELETE','Driver'),   c.remove);
 
 router.patch('/:id/suspend',         authorize('admin','manager'), audit('SUSPEND','Driver'),        c.suspend);

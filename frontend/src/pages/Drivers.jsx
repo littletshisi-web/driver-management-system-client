@@ -20,8 +20,8 @@ import styles from './Drivers.module.css';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
-const STATUS_COLOUR = { available: 'green', busy: 'amber', inactive: 'red' };
-const STATUS_LABEL  = { available: 'Available', busy: 'Busy', inactive: 'Inactive' };
+const STATUS_COLOUR = { active: 'green', 'on-leave': 'amber', suspended: 'red', inactive: 'gray' };
+const STATUS_LABEL  = { active: 'Active', 'on-leave': 'On Leave', suspended: 'Suspended', inactive: 'Inactive' };
 
 // Assigns a consistent avatar colour to each driver based on their ID
 const AVATAR_COLOURS = ['blue', 'purple', 'teal', 'amber', 'red', 'green'];
@@ -61,7 +61,7 @@ export default function Drivers() {
   const filters = {
     search,
     status: statusFilter,
-    ...(user?.role === ROLES.PARTNER ? { partnerId: user.id } : {}),
+    ...(user?.role === ROLES.PARTNER ? { partnerId: user.partnerId } : {}),
   };
 
   const { drivers, loading, error, refetch } = useDrivers(filters);
@@ -135,8 +135,9 @@ export default function Drivers() {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="">All Status</option>
-              <option value="available">Available</option>
-              <option value="busy">Busy</option>
+              <option value="active">Active</option>
+              <option value="on-leave">On Leave</option>
+              <option value="suspended">Suspended</option>
               <option value="inactive">Inactive</option>
             </select>
           </div>
@@ -154,9 +155,9 @@ export default function Drivers() {
             <thead>
               <tr>
                 <th>Driver</th>
-                <th>License</th>
-                <th>Vehicle</th>
-                <th>Area</th>
+                <th>Licence</th>
+                <th>Vehicle Reg</th>
+                <th>Zone</th>
                 <th>Partner</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -184,12 +185,11 @@ export default function Drivers() {
                         </div>
                       </div>
                     </td>
-                    <td className={styles.mono}>{driver.licenseNumber}</td>
+                    <td className={styles.mono}>{driver.licenceNumber}</td>
                     <td>
-                      <span className={styles.vehicleName}>{driver.vehicleType}</span>
                       <span className={styles.vehicleReg}>{driver.vehicleReg}</span>
                     </td>
-                    <td>{driver.area?.name ?? '—'}</td>
+                    <td>{driver.zone ?? '—'}</td>
                     <td>
                       {driver.partner
                         ? <Badge colour="blue">{driver.partner.name}</Badge>

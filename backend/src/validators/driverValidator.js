@@ -10,6 +10,8 @@ const createDriverSchema = Joi.object({
   dateOfBirth: Joi.date().iso(),
   zone:        Joi.string(),
   partnerId:   Joi.string().uuid(),
+  licenceNumber: Joi.string(),
+  vehicleReg:    Joi.string(),
   shiftStart:  Joi.string().pattern(/^\d{2}:\d{2}$/),
   shiftEnd:    Joi.string().pattern(/^\d{2}:\d{2}$/),
   status:      Joi.string().valid('active', 'inactive', 'on-leave', 'suspended'),

@@ -22,11 +22,12 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [role, setRole]         = useState('admin');
-  const [email, setEmail]       = useState(USE_MOCK ? DEMO_EMAILS.admin : '');
-  const [password, setPassword] = useState(USE_MOCK ? 'password' : '');
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
+  const [role, setRole]             = useState('admin');
+  const [email, setEmail]           = useState(USE_MOCK ? DEMO_EMAILS.admin : '');
+  const [password, setPassword]     = useState(USE_MOCK ? 'password' : '');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
 
   const handleRolePick = (r) => {
     setRole(r);
@@ -123,14 +124,37 @@ export default function Login() {
 
           <div className={styles.field}>
             <label className={styles.label}>Password</label>
-            <input
-              type="password"
-              className={styles.input}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoComplete="current-password"
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className={styles.input}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="current-password"
+                style={{ paddingRight: '2.5rem' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  color: '#94a3b8',
+                  fontSize: '0.8rem',
+                  userSelect: 'none',
+                }}
+                tabIndex={-1}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           <button

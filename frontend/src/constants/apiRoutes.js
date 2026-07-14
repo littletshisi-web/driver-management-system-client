@@ -7,6 +7,8 @@ export const API = {
   AUTH_LOGOUT: '/auth/logout',
   AUTH_ME:     '/auth/me',
   AUTH_REGISTER: '/auth/register',
+  AUTH_VERIFY_EMAIL: '/auth/verify-email',
+  AUTH_RESEND_VERIFICATION: '/auth/resend-verification',
 
   // Drivers
   DRIVERS:                    '/drivers',

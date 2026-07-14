@@ -2,13 +2,11 @@
 // These run before API calls to give instant feedback.
 // The backend also validates — if it returns 400, display error.message.
 
-export function validateDriver({ name, phone, licenseNumber, vehicleType, vehicleReg }) {
+export function validateDriver({ firstName, lastName, phone }) {
   const errors = {};
-  if (!name?.trim())         errors.name         = 'Full name is required';
-  if (!phone?.trim())        errors.phone        = 'Phone number is required';
-  if (!licenseNumber?.trim()) errors.licenseNumber = 'License number is required';
-  if (!vehicleType?.trim())  errors.vehicleType  = 'Vehicle type is required';
-  if (!vehicleReg?.trim())   errors.vehicleReg   = 'Vehicle registration is required';
+  if (!firstName?.trim()) errors.firstName = 'First name is required';
+  if (!lastName?.trim())  errors.lastName  = 'Last name is required';
+  if (!phone?.trim())     errors.phone     = 'Phone number is required';
   return errors;
 }
 
