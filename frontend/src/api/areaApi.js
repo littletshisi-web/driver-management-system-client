@@ -17,3 +17,8 @@ export const createArea = (data) =>
 // Response: { data: Area }
 export const updateArea = (id, data) =>
   api.put(API.AREA(id), data);
+
+// DELETE /api/areas/:id
+// Response: { success, message }
+export const deleteArea = (id) =>
+  api.delete(API.AREA(id));

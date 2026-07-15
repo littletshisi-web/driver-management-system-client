@@ -89,8 +89,8 @@ export default function Partners() {
                 <tr key={p.id}>
                   <td><span className={styles.companyName}>{p.name}</span></td>
                   <td>{p.contactName}</td>
-                  <td><a href={`mailto:${p.email}`} className={styles.email}>{p.email}</a></td>
-                  <td><span className={styles.commission}>{p.commissionPct}%</span></td>
+                  <td><a href={`mailto:${p.contactEmail}`} className={styles.email}>{p.contactEmail}</a></td>
+                  <td><span className={styles.commission}>{p.commissionRate}%</span></td>
                   <td><Badge colour="blue">{p.driverCount} drivers</Badge></td>
                   <td><Badge colour="amber">{p.activeTaskCount} active</Badge></td>
                   <td>

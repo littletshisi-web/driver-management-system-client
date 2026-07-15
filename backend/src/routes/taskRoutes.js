@@ -10,7 +10,7 @@ const { createTaskSchema } = require('../validators/taskValidator');
 router.use(protect);
 
 // Stats routes — must be before /:id
-router.get('/stats',               authorize('admin', 'manager'), c.getStats);
+router.get('/stats',               authorize('admin', 'manager', 'partner'), c.getStats);
 router.get('/stats-by-category',   authorize('admin', 'manager'), c.getStatsByCategory);
 
 router.get('/',             c.getAll);

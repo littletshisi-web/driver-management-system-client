@@ -27,6 +27,10 @@ Task.belongsTo(Partner, { foreignKey: 'partnerId' });
 Driver.hasMany(Task, { foreignKey: 'driverId' });
 Task.belongsTo(Driver, { foreignKey: 'driverId' });
 
+// Area ↔ Task
+Area.hasMany(Task, { foreignKey: 'areaId' });
+Task.belongsTo(Area, { foreignKey: 'areaId' });
+
 // Driver ↔ Earnings
 Driver.hasMany(Earnings, { foreignKey: 'driverId' });
 Earnings.belongsTo(Driver, { foreignKey: 'driverId' });
@@ -38,6 +42,10 @@ Earnings.belongsTo(Task, { foreignKey: 'taskId' });
 // User ↔ Driver  ✅ NEW — links the auth/login User to their operational Driver record
 User.hasOne(Driver, { foreignKey: 'userId' });
 Driver.belongsTo(User, { foreignKey: 'userId' });
+
+// User ↔ Partner — links the auth/login User to their operational Partner record
+User.hasOne(Partner, { foreignKey: 'userId' });
+Partner.belongsTo(User, { foreignKey: 'userId' });
 
 // User → Reports (generatedBy)
 User.hasMany(Report, { foreignKey: 'generatedBy' });

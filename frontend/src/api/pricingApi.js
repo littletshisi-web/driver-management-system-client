@@ -13,7 +13,7 @@ export const updatePricingRules = (data) =>
   api.put(API.PRICING_RULES, data);
 
 // POST /api/pricing/calculate
-// Body: { category, distanceKm, areaId }
-// Response: { finalPrice: number, breakdown: { baseFee, distanceFee, areaModifier, categoryModifier } }
+// Body: { category, distanceKm, areaModifier }
+// Response: { success, finalPrice: number, breakdown: { baseFee, distanceFee, areaModifier, categoryModifier } }
 export const calculatePrice = (payload) =>
   api.post(API.PRICING_CALCULATE, payload);

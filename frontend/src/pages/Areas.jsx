@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '../context/ToastContext.jsx';
 import { useAreas } from '../hooks/useAreas.js';
-import { createArea, updateArea } from '../api/areaApi.js';
+import { createArea, updateArea, deleteArea } from '../api/areaApi.js';
 import PageShell from '../components/layout/PageShell.jsx';
 import Badge from '../components/common/Badge.jsx';
 import Button from '../components/common/Button.jsx';
@@ -55,10 +55,23 @@ export default function Areas() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing]     = useState(null);
   const [saving, setSaving]       = useState(false);
+  const [regionFilter, setRegionFilter] = useState('');
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit   = (a)  => { setEditing(a);  setModalOpen(true); };
   const closeModal = ()   => { setModalOpen(false); setEditing(null); };
+
+  const handleDelete = async (e, area) => {
+    e.stopPropagation(); // don't trigger the card's openEdit click
+    if (!window.confirm(`Remove ${area.name}? This area will be deactivated.`)) return;
+    try {
+      if (!USE_MOCK) await deleteArea(area.id);
+      toast(`${area.name} removed`);
+      refetch();
+    } catch (err) {
+      toast(err.response?.data?.message || 'Failed to remove area', 'error');
+    }
+  };
 
   const handleSubmit = async (formData) => {
     setSaving(true);
@@ -90,7 +103,9 @@ export default function Areas() {
     );
   }
 
-  const grouped = groupByProvince(areas);
+  const regions = [...new Set(areas.map((a) => a.region).filter(Boolean))].sort();
+  const filteredAreas = regionFilter ? areas.filter((a) => a.region === regionFilter) : areas;
+  const grouped = groupByProvince(filteredAreas);
 
   return (
     <PageShell
@@ -106,6 +121,17 @@ export default function Areas() {
       }
     >
       {error && <ErrorBanner message={error} onRetry={refetch} />}
+
+      <div className={styles.filterBar}>
+        <select
+          className={styles.filterSelect}
+          value={regionFilter}
+          onChange={(e) => setRegionFilter(e.target.value)}
+        >
+          <option value="">All Regions</option>
+          {regions.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+      </div>
 
       {grouped.map(({ province, areas: provAreas }) => (
         <div key={province} className={styles.provinceSection}>
@@ -125,6 +151,9 @@ export default function Areas() {
                 <div className={styles.modifier}>
                   Price modifier <span className={styles.modValue}>×{(area.priceModifier ?? 1).toFixed(1)}</span>
                 </div>
+                <button className={styles.deleteBtn} onClick={(e) => handleDelete(e, area)}>
+                  Remove area
+                </button>
               </div>
             ))}
           </div>

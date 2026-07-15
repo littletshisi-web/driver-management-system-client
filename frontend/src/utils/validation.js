@@ -22,14 +22,14 @@ export function validatePartner({ name, contactName, email, phone, commissionPct
   return errors;
 }
 
-export function validateTask({ category, driverId, areaId, distanceKm, pickupAddress, deliveryAddress }) {
+export function validateTask({ category, driverId, areaId, distanceKm, pickupAddress, dropoffAddress }) {
   const errors = {};
   if (!category)           errors.category        = 'Category is required';
   if (!driverId)           errors.driverId        = 'Please assign a driver';
   if (!areaId)             errors.areaId          = 'Please select an area';
   if (!distanceKm || distanceKm <= 0) errors.distanceKm = 'Enter a valid distance';
-  if (!pickupAddress?.trim())   errors.pickupAddress   = 'Pickup address is required';
-  if (!deliveryAddress?.trim()) errors.deliveryAddress = 'Delivery address is required';
+  if (!pickupAddress?.trim())    errors.pickupAddress    = 'Pickup address is required';
+  if (!dropoffAddress?.trim())   errors.dropoffAddress   = 'Drop-off address is required';
   return errors;
 }
 

@@ -35,10 +35,34 @@ const updateConfig = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-const calculate = (req, res) => {
-  const { baseFare = 35, perKmRate = 12, distanceKm = 0 } = req.body;
-  const total = pricingService.calculate(baseFare, perKmRate, distanceKm);
-  res.json({ success: true, data: { baseFare, perKmRate, distanceKm, total } });
+const CATEGORY_SLUGS = {
+  'Parcel Delivery':   'parcel_delivery',
+  'Vehicle Towing':    'vehicle_towing',
+  'Furniture Moving':  'furniture_moving',
+};
+const slugifyCategory = (category) =>
+  CATEGORY_SLUGS[category] || String(category || '').toLowerCase().trim().replace(/\s+/g, '_');
+
+const calculate = async (req, res, next) => {
+  try {
+    const { category, distanceKm = 0, areaModifier = 1 } = req.body;
+    const config = await getOrCreate();
+    const slug = slugifyCategory(category);
+
+    const baseFee         = config.baseFees?.[slug] ?? 0;
+    const ratePerKm        = config.ratesPerKm?.[slug] ?? 0;
+    const categoryModifier = config.categoryModifiers?.[slug] ?? 1;
+    const dist  = parseFloat(distanceKm) || 0;
+    const area  = parseFloat(areaModifier) || 1;
+    const distanceFee = dist * ratePerKm;
+    const finalPrice  = (baseFee + distanceFee) * area * categoryModifier;
+
+    res.json({
+      success: true,
+      finalPrice,
+      breakdown: { baseFee, distanceFee, areaModifier: area, categoryModifier },
+    });
+  } catch (err) { next(err); }
 };
 
 module.exports = { getConfig, updateConfig, calculate };

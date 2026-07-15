@@ -2,6 +2,7 @@
 const reportService = require('../services/reportService');
 const Earnings = require('../models/Earnings');
 const Driver = require('../models/Driver');
+const Partner = require('../models/Partner');
 const Task = require('../models/Task');
 const { Op } = require('sequelize');
 const PDFDocument = require('pdfkit');
@@ -224,8 +225,22 @@ const getRevenueSummary = async (req, res, next) => {
     const from = req.query.from ? new Date(req.query.from) : defaultFrom;
     const to   = req.query.to   ? new Date(req.query.to)   : defaultTo;
 
+    const where = { createdAt: { [Op.between]: [from, to] } };
+
+    // Partner-scoped view: only earnings for drivers assigned to this partner.
+    // A partner can never see another partner's numbers, regardless of query params.
+    let partnerId = req.query.partnerId;
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      partnerId = own?.id ?? '__none__';
+    }
+    if (partnerId) {
+      const drivers = await Driver.findAll({ where: { partnerId }, attributes: ['id'] });
+      where.driverId = { [Op.in]: drivers.map((d) => d.id) };
+    }
+
     const earnings = await Earnings.findAll({
-      where: { createdAt: { [Op.between]: [from, to] } },
+      where,
       attributes: ['amount', 'netAmount'],
     });
 

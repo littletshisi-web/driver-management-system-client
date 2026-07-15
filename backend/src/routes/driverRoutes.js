@@ -11,7 +11,7 @@ const upload = require('../config/multer');
 router.use(protect);
 
 // Dashboard stats — must be before /:id to avoid route conflict
-router.get('/stats', authorize('admin', 'manager'), c.getStats);
+router.get('/stats', authorize('admin', 'manager', 'partner'), c.getStats);
 
 router.get('/',         c.getAll);
 router.get('/:id',      c.getOne);

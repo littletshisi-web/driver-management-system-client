@@ -16,6 +16,7 @@ const Task = sequelize.define('Task', {
 
   driverId:       { type: DataTypes.UUID, references: { model: 'Drivers', key: 'id' } },
   partnerId:      { type: DataTypes.UUID, references: { model: 'Partners', key: 'id' } },
+  areaId:         { type: DataTypes.UUID, references: { model: 'Areas', key: 'id' } },
   pickupAddress:  { type: DataTypes.STRING, allowNull: false },
   pickupLat:      { type: DataTypes.FLOAT },
   pickupLng:      { type: DataTypes.FLOAT },
@@ -37,6 +38,7 @@ const Task = sequelize.define('Task', {
   indexes: [
     { fields: ['driverId'] },
     { fields: ['partnerId'] },
+    { fields: ['areaId'] },
     { fields: ['status'] },
     { fields: ['taskCode'] },
     { fields: ['category'] },

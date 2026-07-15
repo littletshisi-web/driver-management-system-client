@@ -2,6 +2,7 @@
 const Task    = require('../models/Task');
 const Driver  = require('../models/Driver');
 const Partner = require('../models/Partner');
+const Area    = require('../models/Area');
 const Earnings = require('../models/Earnings');
 const generateTaskCode  = require('../utils/generateTaskCode');
 const calculateDistance = require('../utils/calculateDistance');
@@ -25,6 +26,7 @@ const getAll = async (req, res, next) => {
       include: [
         { model: Driver,  attributes: ['id', 'firstName', 'lastName', 'zone'] },
         { model: Partner, attributes: ['id', 'name'] },
+        { model: Area,    attributes: ['id', 'name', 'region'] },
       ],
       limit: parseInt(limit),
       offset: (parseInt(page) - 1) * parseInt(limit),
@@ -40,6 +42,7 @@ const getOne = async (req, res, next) => {
       include: [
         { model: Driver,  attributes: ['id', 'firstName', 'lastName', 'phone', 'zone'] },
         { model: Partner, attributes: ['id', 'name', 'commissionRate'] },
+        { model: Area,    attributes: ['id', 'name', 'region'] },
       ],
     });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
@@ -144,10 +147,16 @@ const assignDriver = async (req, res, next) => {
 // GET /api/tasks/stats
 const getStats = async (req, res, next) => {
   try {
+    let { partnerId } = req.query;
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      partnerId = own?.id ?? '__none__';
+    }
+    const base = partnerId ? { partnerId } : {};
     const [total, active, pending] = await Promise.all([
-      Task.count(),
-      Task.count({ where: { status: { [Op.in]: ['assigned', 'in-transit'] } } }),
-      Task.count({ where: { status: 'pending' } }),
+      Task.count({ where: base }),
+      Task.count({ where: { ...base, status: { [Op.in]: ['assigned', 'in-transit'] } } }),
+      Task.count({ where: { ...base, status: 'pending' } }),
     ]);
     res.json({ success: true, data: { total, active, pending } });
   } catch (err) { next(err); }

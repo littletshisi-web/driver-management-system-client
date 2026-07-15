@@ -133,9 +133,15 @@ const removePartner = async (req, res, next) => {
 
 const getStats = async (req, res, next) => {
   try {
+    let { partnerId } = req.query;
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      partnerId = own?.id ?? '__none__'; // partner accounts with no linked Partner row see zero, never someone else's data
+    }
+    const where = partnerId ? { partnerId } : {};
     const [total, active] = await Promise.all([
-      Driver.count(),
-      Driver.count({ where: { status: 'active' } }),
+      Driver.count({ where }),
+      Driver.count({ where: { ...where, status: 'active' } }),
     ]);
     res.json({ success: true, data: { total, active } });
   } catch (err) { next(err); }

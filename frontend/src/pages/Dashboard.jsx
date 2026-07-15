@@ -107,12 +107,14 @@ export default function Dashboard() {
           ]);
         } else {
           const month = monthRange();
+          const isPartner = user.role === ROLES.PARTNER;
+          const partnerQuery = isPartner && user.partnerId ? `?partnerId=${user.partnerId}` : '';
 
           const [driversRes, tasksRes, partnersRes, revenueRes] = await Promise.all([
-            api.get('/drivers/stats'),
-            api.get('/tasks/stats'),
-            api.get('/partners/stats'),
-            api.get(`/reports/revenue-summary?from=${month.from}&to=${month.to}`),
+            api.get(`/drivers/stats${partnerQuery}`),
+            api.get(`/tasks/stats${partnerQuery}`),
+            isPartner ? Promise.resolve({ data: {} }) : api.get('/partners/stats'),
+            api.get(`/reports/revenue-summary?from=${month.from}&to=${month.to}${isPartner && user.partnerId ? `&partnerId=${user.partnerId}` : ''}`),
           ]);
 
           const drivers  = driversRes.data;

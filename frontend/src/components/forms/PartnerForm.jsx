@@ -15,9 +15,9 @@ export default function PartnerForm({ initial = {}, onSubmit, loading }) {
   const [form, setForm] = useState({
     name:          initial.name          ?? '',
     contactName:   initial.contactName   ?? '',
-    email:         initial.email         ?? '',
-    phone:         initial.phone         ?? '',
-    commissionPct: initial.commissionPct ?? 12,
+    email:         initial.contactEmail   ?? '',
+    phone:         initial.contactPhone   ?? '',
+    commissionPct: initial.commissionRate ?? 12,
     region:        initial.region        ?? 'Gauteng',
   });
   const [errors, setErrors] = useState({});

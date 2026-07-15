@@ -42,7 +42,7 @@ export default function Tasks() {
 
   const taskFilters = user?.role === ROLES.DRIVER ? { driverId: user.driverId } : {};
   const { tasks, loading, error, refetch } = useTasks(taskFilters);
-  const { drivers } = useDrivers({ status: 'available' });
+  const { drivers } = useDrivers({ status: 'active' });
   const { areas }   = useAreas();
 
   const handleSubmit = async (formData) => {

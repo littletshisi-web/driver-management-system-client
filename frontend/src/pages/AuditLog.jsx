@@ -12,7 +12,8 @@ import styles from './AuditLog.module.css';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
-// Maps action strings from the API to badge colours
+// Maps action strings from the API to badge colours.
+// Mock data uses lowercase snake_case; live data uses uppercase verbs.
 const ACTION_COLOUR = {
   driver_assigned:     'blue',
   task_created:        'green',
@@ -21,6 +22,22 @@ const ACTION_COLOUR = {
   driver_suspended:    'red',
   partner_created:     'purple',
   login:               'gray',
+  CREATE:         'green',
+  UPDATE:         'amber',
+  UPDATE_STATUS:  'teal',
+  DELETE:         'red',
+  SUSPEND:        'red',
+  ASSIGN:         'blue',
+  REMOVE_PARTNER: 'purple',
+};
+
+// Live data has no pre-written "detail" string — summarize the raw changes JSON instead
+const summarizeChanges = (changes) => {
+  if (!changes || typeof changes !== 'object') return '—';
+  const keys = Object.keys(changes);
+  if (keys.length === 0) return '—';
+  const preview = keys.slice(0, 3).map((k) => `${k}: ${changes[k]}`).join(', ');
+  return keys.length > 3 ? `${preview}…` : preview;
 };
 
 export default function AuditLog() {
@@ -76,14 +93,14 @@ export default function AuditLog() {
                     {/* In mock data ts is a plain string; in live data use formatDate(entry.createdAt) */}
                     {entry.ts ?? formatDate(entry.createdAt)}
                   </td>
-                  <td className={styles.user}>{entry.user}</td>
+                  <td className={styles.user}>{entry.user ?? entry.User?.name ?? 'System'}</td>
                   <td>
                     <Badge colour={ACTION_COLOUR[entry.action] ?? 'gray'}>
                       {entry.action.replace(/_/g, ' ')}
                     </Badge>
                   </td>
                   <td className={styles.entity}>{entry.entity}</td>
-                  <td className={styles.detail}>{entry.detail}</td>
+                  <td className={styles.detail}>{entry.detail ?? summarizeChanges(entry.changes)}</td>
                 </tr>
               ))}
             </tbody>

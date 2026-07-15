@@ -10,6 +10,15 @@ import Spinner from '../components/common/Spinner.jsx';
 
 const CATEGORIES = ['Parcel Delivery', 'Vehicle Towing', 'Furniture Moving'];
 
+// Backend PricingConfig stores category keys as snake_case slugs, not the
+// human-readable labels used in the UI — map between the two here.
+const CATEGORY_SLUGS = {
+  'Parcel Delivery':  'parcel_delivery',
+  'Vehicle Towing':   'vehicle_towing',
+  'Furniture Moving': 'furniture_moving',
+};
+const slug = (label) => CATEGORY_SLUGS[label] || label;
+
 const AREA_MODIFIERS = [
   { label: 'Standard (×1.0)', value: 1.0 },
   { label: 'Extended (×1.2)', value: 1.2 },
@@ -127,7 +136,7 @@ export default function Pricing() {
     setCalcLoading(true);
     try {
       const res = await calculatePrice({
-        category: calcCategory,
+        category: slug(calcCategory),
         distanceKm: parseFloat(calcDistance) || 0,
         areaModifier: parseFloat(calcModifier) || 1.0,
       });
@@ -135,9 +144,10 @@ export default function Pricing() {
     } catch {
       // Fall back to client-side estimate
       if (data) {
-        const base = data.baseFees?.[calcCategory] || 0;
-        const rate = data.ratesPerKm?.[calcCategory] || 0;
-        const mod  = data.categoryModifiers?.[calcCategory] || 1;
+        const cat  = slug(calcCategory);
+        const base = data.baseFees?.[cat] || 0;
+        const rate = data.ratesPerKm?.[cat] || 0;
+        const mod  = data.categoryModifiers?.[cat] || 1;
         const dist = parseFloat(calcDistance) || 0;
         const area = parseFloat(calcModifier) || 1.0;
         setCalcResult({ finalPrice: (base + dist * rate) * area * mod });
@@ -189,8 +199,8 @@ export default function Pricing() {
                     min="0"
                     step="0.01"
                     style={inputStyle}
-                    value={data.baseFees?.[cat] ?? 0}
-                    onChange={(e) => setField('baseFees', cat, e.target.value)}
+                    value={data.baseFees?.[slug(cat)] ?? 0}
+                    onChange={(e) => setField('baseFees', slug(cat), e.target.value)}
                   />
                 </div>
               ))}
@@ -207,8 +217,8 @@ export default function Pricing() {
                     min="0"
                     step="0.01"
                     style={inputStyle}
-                    value={data.ratesPerKm?.[cat] ?? 0}
-                    onChange={(e) => setField('ratesPerKm', cat, e.target.value)}
+                    value={data.ratesPerKm?.[slug(cat)] ?? 0}
+                    onChange={(e) => setField('ratesPerKm', slug(cat), e.target.value)}
                   />
                 </div>
               ))}
@@ -225,8 +235,8 @@ export default function Pricing() {
                     min="0"
                     step="0.01"
                     style={inputStyle}
-                    value={data.categoryModifiers?.[cat] ?? 1}
-                    onChange={(e) => setField('categoryModifiers', cat, e.target.value)}
+                    value={data.categoryModifiers?.[slug(cat)] ?? 1}
+                    onChange={(e) => setField('categoryModifiers', slug(cat), e.target.value)}
                   />
                 </div>
               ))}
