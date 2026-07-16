@@ -39,9 +39,13 @@ export default function DriverForm({ initial = {}, areas = [], partners = [], on
     const errs = validateDriver(form);
     if (!isValid(errs)) { setErrors(errs); return; }
     setErrors({});
-    // Don't send an empty partnerId — backend expects a real UUID or the field omitted
+    // Don't send empty optional fields — backend Joi schema rejects empty
+    // strings for these (no .allow('')), and partnerId needs a real UUID
+    // or the field omitted entirely.
     const payload = { ...form };
-    if (!payload.partnerId) delete payload.partnerId;
+    ['partnerId', 'licenceNumber', 'vehicleReg', 'zone'].forEach((key) => {
+      if (!payload[key]) delete payload[key];
+    });
     onSubmit(payload);
   };
 
