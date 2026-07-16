@@ -42,7 +42,11 @@ export default function Tasks() {
 
   const taskFilters = user?.role === ROLES.DRIVER ? { driverId: user.driverId } : {};
   const { tasks, loading, error, refetch } = useTasks(taskFilters);
-  const { drivers } = useDrivers({ status: 'active' });
+  // Partners should only be able to assign their own drivers — the backend
+  // also enforces this server-side, but pass it explicitly here too so the
+  // dropdown isn't populated with (or emptied by) other partners' drivers.
+  const driverFilters = user?.role === ROLES.PARTNER ? { status: 'active', partnerId: user.partnerId } : { status: 'active' };
+  const { drivers } = useDrivers(driverFilters);
   const { areas }   = useAreas();
 
   const handleSubmit = async (formData) => {

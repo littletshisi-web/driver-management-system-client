@@ -9,7 +9,14 @@ const {
 
 const getAll = async (req, res, next) => {
   try {
-    const { status, zone, partnerId, search, page = 1, limit = 20 } = req.query;
+    const { status, zone, search, page = 1, limit = 20 } = req.query;
+    let { partnerId } = req.query;
+    // Partners can only ever see their own drivers — enforced server-side,
+    // never trust a partnerId passed in the query string for this role.
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      partnerId = own?.id ?? '__none__';
+    }
     const where = {};
     if (status)    where.status    = status;
     if (zone)      where.zone      = zone;
@@ -45,7 +52,14 @@ const getOne = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    const driver = await Driver.create(req.body);
+    const body = { ...req.body };
+    // Partners can only ever create drivers under their own company —
+    // enforced server-side, never trust a partnerId passed by the client.
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      body.partnerId = own?.id ?? null;
+    }
+    const driver = await Driver.create(body);
     res.status(201).json({ success: true, data: driver });
   } catch (err) { next(err); }
 };
@@ -54,7 +68,16 @@ const update = async (req, res, next) => {
   try {
     const driver = await Driver.findByPk(req.params.id);
     if (!driver) return res.status(404).json({ success: false, message: 'Driver not found' });
-    await driver.update(req.body);
+    const body = { ...req.body };
+    if (req.user.role === 'partner') {
+      // Partners may only edit their own drivers, and can't reassign them elsewhere.
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      if (!own || driver.partnerId !== own.id) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+      body.partnerId = own.id;
+    }
+    await driver.update(body);
     res.json({ success: true, data: driver });
   } catch (err) { next(err); }
 };

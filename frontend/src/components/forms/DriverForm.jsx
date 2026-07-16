@@ -3,16 +3,16 @@ import FormField from './FormField.jsx';
 import styles from './Form.module.css';
 import { validateDriver, isValid } from '../../utils/validation.js';
 
-const VEHICLE_TYPES = ['Sedan', 'Van', 'Bakkie', 'Truck', 'Tow Truck'];
-const STATUSES      = [
-  { value: 'available', label: 'Available' },
-  { value: 'busy',      label: 'Busy'      },
+const STATUSES = [
+  { value: 'active',    label: 'Active'    },
   { value: 'inactive',  label: 'Inactive'  },
+  { value: 'on-leave',  label: 'On Leave'  },
+  { value: 'suspended', label: 'Suspended' },
 ];
 
 /**
  * Props:
- *   initial   object   — pre-filled values for edit mode (optional)
+ *   initial   object   — pre-filled Driver record for edit mode (optional)
  *   areas     Area[]   — from useAreas() hook
  *   partners  Partner[]— from usePartners() hook
  *   onSubmit  function — called with form data object when valid
@@ -20,17 +20,16 @@ const STATUSES      = [
  */
 export default function DriverForm({ initial = {}, areas = [], partners = [], onSubmit, loading }) {
   const [form, setForm] = useState({
-    // Backend uses firstName+lastName; frontend mock uses single 'name'
-    name:               initial.name               ?? '',
-    firstName:          initial.firstName           ?? '',
-    lastName:           initial.lastName           ?? '',
-    phone:              initial.phone              ?? '',
-    licenseNumber:      initial.licenseNumber      ?? '',
-    vehicleType:        initial.vehicleType        ?? '',
-    vehicleReg:         initial.vehicleReg         ?? '',
-    areaId:             initial.area?.id            ?? '',
-    partnerId:          initial.partner?.id         ?? '',
-    availabilityStatus: initial.availabilityStatus ?? 'available',
+    // Driver model has firstName+lastName (no combined `name` field)
+    firstName:      initial.firstName      ?? '',
+    lastName:       initial.lastName       ?? '',
+    phone:          initial.phone          ?? '',
+    licenceNumber:  initial.licenceNumber  ?? '',
+    vehicleReg:     initial.vehicleReg     ?? '',
+    // Driver.zone is a plain string column, not a foreign key — store the area name
+    zone:           initial.zone           ?? '',
+    partnerId:      initial.partnerId      ?? initial.partner?.id ?? '',
+    status:         initial.status         ?? 'active',
   });
   const [errors, setErrors] = useState({});
 
@@ -40,41 +39,41 @@ export default function DriverForm({ initial = {}, areas = [], partners = [], on
     const errs = validateDriver(form);
     if (!isValid(errs)) { setErrors(errs); return; }
     setErrors({});
-    onSubmit(form);
+    // Don't send an empty partnerId — backend expects a real UUID or the field omitted
+    const payload = { ...form };
+    if (!payload.partnerId) delete payload.partnerId;
+    onSubmit(payload);
   };
 
   return (
     <div>
       <div className={styles.row}>
-        <FormField label="Full Name" error={errors.name} required>
-          <input type="text" placeholder="e.g. John Smith" value={form.name} onChange={set('name')} />
+        <FormField label="First Name" error={errors.firstName} required>
+          <input type="text" placeholder="e.g. John" value={form.firstName} onChange={set('firstName')} />
         </FormField>
+        <FormField label="Last Name" error={errors.lastName} required>
+          <input type="text" placeholder="e.g. Smith" value={form.lastName} onChange={set('lastName')} />
+        </FormField>
+      </div>
+
+      <div className={styles.row}>
         <FormField label="Phone" error={errors.phone} required>
           <input type="tel" placeholder="+27 82 000 0000" value={form.phone} onChange={set('phone')} />
         </FormField>
-      </div>
-
-      <div className={styles.row}>
-        <FormField label="License Number" error={errors.licenseNumber} required>
-          <input type="text" placeholder="e.g. GP12345678" value={form.licenseNumber} onChange={set('licenseNumber')} />
-        </FormField>
-        <FormField label="Vehicle Type" error={errors.vehicleType} required>
-          <select value={form.vehicleType} onChange={set('vehicleType')}>
-            <option value="">Select type…</option>
-            {VEHICLE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+        <FormField label="Licence Number" error={errors.licenceNumber}>
+          <input type="text" placeholder="e.g. GP12345678" value={form.licenceNumber} onChange={set('licenceNumber')} />
         </FormField>
       </div>
 
       <div className={styles.row}>
-        <FormField label="Vehicle Registration" error={errors.vehicleReg} required>
+        <FormField label="Vehicle Registration" error={errors.vehicleReg}>
           <input type="text" placeholder="e.g. GP 123-456" value={form.vehicleReg} onChange={set('vehicleReg')} />
         </FormField>
         <FormField label="Operational Area">
-          {/* Populated from GET /api/areas via useAreas() hook in parent */}
-          <select value={form.areaId} onChange={set('areaId')}>
+          {/* Driver.zone stores the area name as plain text */}
+          <select value={form.zone} onChange={set('zone')}>
             <option value="">Select area…</option>
-            {areas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {areas.map((a) => <option key={a.id} value={a.name}>{a.name}</option>)}
           </select>
         </FormField>
       </div>
@@ -87,8 +86,8 @@ export default function DriverForm({ initial = {}, areas = [], partners = [], on
             {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </FormField>
-        <FormField label="Availability Status">
-          <select value={form.availabilityStatus} onChange={set('availabilityStatus')}>
+        <FormField label="Status">
+          <select value={form.status} onChange={set('status')}>
             {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </FormField>
