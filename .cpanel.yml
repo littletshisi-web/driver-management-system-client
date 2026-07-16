@@ -3,5 +3,5 @@ deployment:
   tasks:
     - export DEPLOYPATH=/home/danigrou/api.danigroup.co.za
     - /bin/cp -r backend/. $DEPLOYPATH
-    - cd frontend && npm install && npm run build && cd ..
+    - export PATH=/home/danigrou/nodevenv/api.danigroup.co.za/24/bin:$PATH && cd frontend && npm install && npm run build && cd ..
     - /bin/cp -r frontend/dist/. /home/danigrou/dms.danigroup.co.za
