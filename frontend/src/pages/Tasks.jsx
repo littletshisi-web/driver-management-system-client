@@ -19,8 +19,13 @@ import styles from './Tasks.module.css';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
-// Must match the Task model ENUM values exactly
+// Must match the Task model ENUM values exactly.
+// NOTE: the Task model's `status` column defaults to 'pending', so a
+// "pending" column must exist here — otherwise any task created without
+// an explicit status (e.g. no driver assigned yet) is created successfully
+// but never appears in any column on the board.
 const STATUS_COLUMNS = [
+  { key: 'pending',    label: 'Pending',     colour: 'gray'   },
   { key: 'assigned',   label: 'Assigned',    colour: 'amber'  },
   { key: 'in-transit', label: 'In Progress', colour: 'blue'   },
   { key: 'delivered',  label: 'Completed',   colour: 'green'  },

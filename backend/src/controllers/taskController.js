@@ -57,7 +57,20 @@ const create = async (req, res, next) => {
     if (!distanceKm && pickupLat && dropoffLat)
       distanceKm = calculateDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
     const totalFare = pricingService.calculate(baseFare || 35, perKmRate || 12, distanceKm || 0);
-    const task = await Task.create({ ...req.body, taskCode: generateTaskCode(), distanceKm, totalFare });
+
+    // A task created with a driver already assigned should land in the
+    // "assigned" column, not sit invisibly in the default "pending" status
+    // (the Task Board has no "pending" column). Only fall back to the
+    // model's default ('pending') when no driver is set at creation time.
+    const status = req.body.status || (req.body.driverId ? 'assigned' : undefined);
+
+    const task = await Task.create({
+      ...req.body,
+      ...(status ? { status } : {}),
+      taskCode: generateTaskCode(),
+      distanceKm,
+      totalFare,
+    });
 
     // Send assignment email if driver is set at creation time
     if (task.driverId) {
