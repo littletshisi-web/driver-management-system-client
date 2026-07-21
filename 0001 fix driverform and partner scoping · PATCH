@@ -1,0 +1,218 @@
+From 56710032342983ffc160a8f5d318f71b21068c4a Mon Sep 17 00:00:00 2001
+From: Tshamano Tshisikhawe Davhana <tshisidavhana@icloud.com>
+Date: Thu, 16 Jul 2026 09:08:04 +0000
+Subject: [PATCH] Fix DriverForm field mismatches and scope partner driver
+ access
+
+- DriverForm.jsx was never updated to match the backend Driver model:
+  it still used name/licenseNumber/vehicleType/areaId/availabilityStatus
+  instead of firstName+lastName/licenceNumber/zone/status, and the wrong
+  status enum. This caused create/edit driver to always fail client-side
+  validation (First/Last name required).
+- driverController: partner role can now only see, create, and edit
+  drivers under their own linked Partner record, enforced server-side
+  (partnerId from query/body is no longer trusted for partner role).
+- Tasks.jsx: assign-driver dropdown now explicitly scopes to the
+  partner's own drivers when the logged-in user is a partner.
+---
+ backend/src/controllers/driverController.js  | 29 ++++++++-
+ frontend/src/components/forms/DriverForm.jsx | 67 ++++++++++----------
+ frontend/src/pages/Tasks.jsx                 |  6 +-
+ 3 files changed, 64 insertions(+), 38 deletions(-)
+
+diff --git a/backend/src/controllers/driverController.js b/backend/src/controllers/driverController.js
+index ad2e0c7..b2bdda5 100644
+--- a/backend/src/controllers/driverController.js
++++ b/backend/src/controllers/driverController.js
+@@ -9,7 +9,14 @@ const {
+ 
+ const getAll = async (req, res, next) => {
+   try {
+-    const { status, zone, partnerId, search, page = 1, limit = 20 } = req.query;
++    const { status, zone, search, page = 1, limit = 20 } = req.query;
++    let { partnerId } = req.query;
++    // Partners can only ever see their own drivers — enforced server-side,
++    // never trust a partnerId passed in the query string for this role.
++    if (req.user.role === 'partner') {
++      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
++      partnerId = own?.id ?? '__none__';
++    }
+     const where = {};
+     if (status)    where.status    = status;
+     if (zone)      where.zone      = zone;
+@@ -45,7 +52,14 @@ const getOne = async (req, res, next) => {
+ 
+ const create = async (req, res, next) => {
+   try {
+-    const driver = await Driver.create(req.body);
++    const body = { ...req.body };
++    // Partners can only ever create drivers under their own company —
++    // enforced server-side, never trust a partnerId passed by the client.
++    if (req.user.role === 'partner') {
++      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
++      body.partnerId = own?.id ?? null;
++    }
++    const driver = await Driver.create(body);
+     res.status(201).json({ success: true, data: driver });
+   } catch (err) { next(err); }
+ };
+@@ -54,7 +68,16 @@ const update = async (req, res, next) => {
+   try {
+     const driver = await Driver.findByPk(req.params.id);
+     if (!driver) return res.status(404).json({ success: false, message: 'Driver not found' });
+-    await driver.update(req.body);
++    const body = { ...req.body };
++    if (req.user.role === 'partner') {
++      // Partners may only edit their own drivers, and can't reassign them elsewhere.
++      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
++      if (!own || driver.partnerId !== own.id) {
++        return res.status(403).json({ success: false, message: 'Access denied' });
++      }
++      body.partnerId = own.id;
++    }
++    await driver.update(body);
+     res.json({ success: true, data: driver });
+   } catch (err) { next(err); }
+ };
+diff --git a/frontend/src/components/forms/DriverForm.jsx b/frontend/src/components/forms/DriverForm.jsx
+index 30b0565..edca8b8 100644
+--- a/frontend/src/components/forms/DriverForm.jsx
++++ b/frontend/src/components/forms/DriverForm.jsx
+@@ -3,16 +3,16 @@ import FormField from './FormField.jsx';
+ import styles from './Form.module.css';
+ import { validateDriver, isValid } from '../../utils/validation.js';
+ 
+-const VEHICLE_TYPES = ['Sedan', 'Van', 'Bakkie', 'Truck', 'Tow Truck'];
+-const STATUSES      = [
+-  { value: 'available', label: 'Available' },
+-  { value: 'busy',      label: 'Busy'      },
++const STATUSES = [
++  { value: 'active',    label: 'Active'    },
+   { value: 'inactive',  label: 'Inactive'  },
++  { value: 'on-leave',  label: 'On Leave'  },
++  { value: 'suspended', label: 'Suspended' },
+ ];
+ 
+ /**
+  * Props:
+- *   initial   object   — pre-filled values for edit mode (optional)
++ *   initial   object   — pre-filled Driver record for edit mode (optional)
+  *   areas     Area[]   — from useAreas() hook
+  *   partners  Partner[]— from usePartners() hook
+  *   onSubmit  function — called with form data object when valid
+@@ -20,17 +20,16 @@ const STATUSES      = [
+  */
+ export default function DriverForm({ initial = {}, areas = [], partners = [], onSubmit, loading }) {
+   const [form, setForm] = useState({
+-    // Backend uses firstName+lastName; frontend mock uses single 'name'
+-    name:               initial.name               ?? '',
+-    firstName:          initial.firstName           ?? '',
+-    lastName:           initial.lastName           ?? '',
+-    phone:              initial.phone              ?? '',
+-    licenseNumber:      initial.licenseNumber      ?? '',
+-    vehicleType:        initial.vehicleType        ?? '',
+-    vehicleReg:         initial.vehicleReg         ?? '',
+-    areaId:             initial.area?.id            ?? '',
+-    partnerId:          initial.partner?.id         ?? '',
+-    availabilityStatus: initial.availabilityStatus ?? 'available',
++    // Driver model has firstName+lastName (no combined `name` field)
++    firstName:      initial.firstName      ?? '',
++    lastName:       initial.lastName       ?? '',
++    phone:          initial.phone          ?? '',
++    licenceNumber:  initial.licenceNumber  ?? '',
++    vehicleReg:     initial.vehicleReg     ?? '',
++    // Driver.zone is a plain string column, not a foreign key — store the area name
++    zone:           initial.zone           ?? '',
++    partnerId:      initial.partnerId      ?? initial.partner?.id ?? '',
++    status:         initial.status         ?? 'active',
+   });
+   const [errors, setErrors] = useState({});
+ 
+@@ -40,41 +39,41 @@ export default function DriverForm({ initial = {}, areas = [], partners = [], on
+     const errs = validateDriver(form);
+     if (!isValid(errs)) { setErrors(errs); return; }
+     setErrors({});
+-    onSubmit(form);
++    // Don't send an empty partnerId — backend expects a real UUID or the field omitted
++    const payload = { ...form };
++    if (!payload.partnerId) delete payload.partnerId;
++    onSubmit(payload);
+   };
+ 
+   return (
+     <div>
+       <div className={styles.row}>
+-        <FormField label="Full Name" error={errors.name} required>
+-          <input type="text" placeholder="e.g. John Smith" value={form.name} onChange={set('name')} />
++        <FormField label="First Name" error={errors.firstName} required>
++          <input type="text" placeholder="e.g. John" value={form.firstName} onChange={set('firstName')} />
+         </FormField>
+-        <FormField label="Phone" error={errors.phone} required>
+-          <input type="tel" placeholder="+27 82 000 0000" value={form.phone} onChange={set('phone')} />
++        <FormField label="Last Name" error={errors.lastName} required>
++          <input type="text" placeholder="e.g. Smith" value={form.lastName} onChange={set('lastName')} />
+         </FormField>
+       </div>
+ 
+       <div className={styles.row}>
+-        <FormField label="License Number" error={errors.licenseNumber} required>
+-          <input type="text" placeholder="e.g. GP12345678" value={form.licenseNumber} onChange={set('licenseNumber')} />
++        <FormField label="Phone" error={errors.phone} required>
++          <input type="tel" placeholder="+27 82 000 0000" value={form.phone} onChange={set('phone')} />
+         </FormField>
+-        <FormField label="Vehicle Type" error={errors.vehicleType} required>
+-          <select value={form.vehicleType} onChange={set('vehicleType')}>
+-            <option value="">Select type…</option>
+-            {VEHICLE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+-          </select>
++        <FormField label="Licence Number" error={errors.licenceNumber}>
++          <input type="text" placeholder="e.g. GP12345678" value={form.licenceNumber} onChange={set('licenceNumber')} />
+         </FormField>
+       </div>
+ 
+       <div className={styles.row}>
+-        <FormField label="Vehicle Registration" error={errors.vehicleReg} required>
++        <FormField label="Vehicle Registration" error={errors.vehicleReg}>
+           <input type="text" placeholder="e.g. GP 123-456" value={form.vehicleReg} onChange={set('vehicleReg')} />
+         </FormField>
+         <FormField label="Operational Area">
+-          {/* Populated from GET /api/areas via useAreas() hook in parent */}
+-          <select value={form.areaId} onChange={set('areaId')}>
++          {/* Driver.zone stores the area name as plain text */}
++          <select value={form.zone} onChange={set('zone')}>
+             <option value="">Select area…</option>
+-            {areas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
++            {areas.map((a) => <option key={a.id} value={a.name}>{a.name}</option>)}
+           </select>
+         </FormField>
+       </div>
+@@ -87,8 +86,8 @@ export default function DriverForm({ initial = {}, areas = [], partners = [], on
+             {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+           </select>
+         </FormField>
+-        <FormField label="Availability Status">
+-          <select value={form.availabilityStatus} onChange={set('availabilityStatus')}>
++        <FormField label="Status">
++          <select value={form.status} onChange={set('status')}>
+             {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+           </select>
+         </FormField>
+diff --git a/frontend/src/pages/Tasks.jsx b/frontend/src/pages/Tasks.jsx
+index 1949445..ce43408 100644
+--- a/frontend/src/pages/Tasks.jsx
++++ b/frontend/src/pages/Tasks.jsx
+@@ -42,7 +42,11 @@ export default function Tasks() {
+ 
+   const taskFilters = user?.role === ROLES.DRIVER ? { driverId: user.driverId } : {};
+   const { tasks, loading, error, refetch } = useTasks(taskFilters);
+-  const { drivers } = useDrivers({ status: 'active' });
++  // Partners should only be able to assign their own drivers — the backend
++  // also enforces this server-side, but pass it explicitly here too so the
++  // dropdown isn't populated with (or emptied by) other partners' drivers.
++  const driverFilters = user?.role === ROLES.PARTNER ? { status: 'active', partnerId: user.partnerId } : { status: 'active' };
++  const { drivers } = useDrivers(driverFilters);
+   const { areas }   = useAreas();
+ 
+   const handleSubmit = async (formData) => {
+-- 
+2.43.0

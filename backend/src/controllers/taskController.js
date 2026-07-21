@@ -16,7 +16,21 @@ const { Op } = require('sequelize');
 
 const getAll = async (req, res, next) => {
   try {
-    const { status, driverId, partnerId, page = 1, limit = 20 } = req.query;
+    const { status, page = 1, limit = 20 } = req.query;
+    let { driverId, partnerId } = req.query;
+
+    // Drivers can only ever see their own tasks — enforced server-side,
+    // never trust a driverId passed in the query string for this role.
+    if (req.user.role === 'driver') {
+      const own = await Driver.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      driverId = own?.id ?? '__none__';
+    }
+    // Partners can only ever see their own drivers' tasks — same pattern.
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      partnerId = own?.id ?? '__none__';
+    }
+
     const where = {};
     if (status)    where.status    = status;
     if (driverId)  where.driverId  = driverId;
@@ -52,8 +66,21 @@ const getOne = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    const { pickupLat, pickupLng, dropoffLat, dropoffLng, baseFare, perKmRate } = req.body;
-    let distanceKm = req.body.distanceKm;
+    const body = { ...req.body };
+
+    // Partners can only create tasks under their own company, and only for
+    // their own drivers — enforced server-side, never trust the client body.
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      body.partnerId = own?.id ?? null;
+      if (body.driverId) {
+        const ownDriver = await Driver.findOne({ where: { id: body.driverId, partnerId: body.partnerId } });
+        if (!ownDriver) return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
+
+    const { pickupLat, pickupLng, dropoffLat, dropoffLng, baseFare, perKmRate } = body;
+    let distanceKm = body.distanceKm;
     if (!distanceKm && pickupLat && dropoffLat)
       distanceKm = calculateDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
     const totalFare = pricingService.calculate(baseFare || 35, perKmRate || 12, distanceKm || 0);
@@ -62,10 +89,10 @@ const create = async (req, res, next) => {
     // "assigned" column, not sit invisibly in the default "pending" status
     // (the Task Board has no "pending" column). Only fall back to the
     // model's default ('pending') when no driver is set at creation time.
-    const status = req.body.status || (req.body.driverId ? 'assigned' : undefined);
+    const status = body.status || (body.driverId ? 'assigned' : undefined);
 
     const task = await Task.create({
-      ...req.body,
+      ...body,
       ...(status ? { status } : {}),
       taskCode: generateTaskCode(),
       distanceKm,
@@ -102,6 +129,22 @@ const updateStatus = async (req, res, next) => {
       ],
     });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    // Drivers can only progress a task actually assigned to them; partners
+    // only for tasks belonging to their own drivers. Never trust the role
+    // alone — verify ownership against the authenticated user's own record.
+    if (req.user.role === 'driver') {
+      const own = await Driver.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      if (!own || task.driverId !== own.id) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      if (!own || task.partnerId !== own.id) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
 
     const updates = { status };
     if (status === 'delivered') {
