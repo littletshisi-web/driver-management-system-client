@@ -9,13 +9,15 @@ export const login = (email, password) =>
   api.post(API.AUTH_LOGIN, { email, password });
 
 // POST /api/auth/register
-// Body:     { name, email, password, role }
-// role must be 'driver' or 'partner' — 'admin' is rejected server-side.
+// Body:     { name, password, applicationToken }
+// applicationToken must belong to an approved, unused DriverApplication —
+// registration is closed to the public otherwise. Email and role are
+// derived server-side from that application, not accepted from the client.
 // Response: { success: true, message, user: { id, name, email, role } }
 // Note: no token is returned — the account is unverified until the user
 // clicks the link emailed to them.
-export const register = (name, email, password, role) =>
-  api.post(API.AUTH_REGISTER, { name, email, password, role });
+export const register = (name, password, applicationToken) =>
+  api.post(API.AUTH_REGISTER, { name, password, applicationToken });
 
 // GET /api/auth/verify-email?token=...
 // Response: { success: true, message }

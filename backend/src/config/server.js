@@ -18,6 +18,7 @@ const pricingRoutes  = require('../routes/pricingRoutes');
 const helpRoutes     = require('../routes/helpRoutes');
 const areaRoutes     = require('../routes/areaRoutes');
 const auditRoutes    = require('../routes/auditRoutes');
+const applicationRoutes = require('../routes/applicationRoutes');
 const errorMiddleware = require('../middleware/errorMiddleware');
 
 const app = express();
@@ -58,6 +59,7 @@ app.use('/api/reports',  reportRoutes);
 app.use('/api/pricing',  pricingRoutes);
 app.use('/api/help',     helpRoutes);
 app.use('/api/areas',    areaRoutes);
+app.use('/api/applications', applicationRoutes);
 app.use('/api/audit',   auditRoutes);
 
 // ── 404 ───────────────────────────────────────────────────

@@ -141,6 +141,38 @@ const sendDriverAssignedEmail = async (driverEmail, driverName, partnerName) => 
   `));
 };
 
+// ─── 7. Driver/partner application received ───────────────────────────────────
+const sendApplicationReceivedEmail = async (toEmail, firstName) => {
+  return send(toEmail, 'We received your application — DMS', base(`
+    <h2 style="color:#1e3a5f;margin-top:0;">Thanks for applying, ${firstName}!</h2>
+    <p style="color:#475569;">We've received your driver/partner application and our team will review your details and documents shortly.</p>
+    <p style="color:#475569;">We'll email you as soon as a decision has been made — usually within a few business days.</p>
+  `));
+};
+
+// ─── 8. Application approved — registration link ──────────────────────────────
+const sendApplicationApprovedEmail = async (toEmail, firstName, registrationToken) => {
+  const url = `${APP_URL}/register?token=${registrationToken}`;
+  return send(toEmail, "You're approved — set up your DMS account", base(`
+    <h2 style="color:#15803d;margin-top:0;">Application Approved ✓</h2>
+    <p style="color:#475569;">Hi ${firstName}, great news — your application has been approved.</p>
+    <p style="color:#475569;">Click below to set a password and activate your account.</p>
+    ${btn(url, 'Set Up My Account')}
+    <p style="color:#94a3b8;font-size:12px;">Or paste this link: <a href="${url}" style="color:#f59e0b;">${url}</a></p>
+    <p style="color:#94a3b8;font-size:12px;">This link expires in 7 days and can only be used once.</p>
+  `));
+};
+
+// ─── 9. Application rejected ───────────────────────────────────────────────────
+const sendApplicationRejectedEmail = async (toEmail, firstName, reason) => {
+  return send(toEmail, 'Update on your DMS application', base(`
+    <h2 style="color:#1e3a5f;margin-top:0;">Application Update</h2>
+    <p style="color:#475569;">Hi ${firstName}, thanks for your interest in driving or partnering with us.</p>
+    <p style="color:#475569;">Unfortunately we're not able to approve your application at this time${reason ? `: <strong>${reason}</strong>` : '.'}</p>
+    <p style="color:#475569;">If you believe this is a mistake or your circumstances change, you're welcome to apply again.</p>
+  `));
+};
+
 module.exports = {
   sendVerificationEmail,
   sendTaskAssignedEmail,
@@ -148,4 +180,7 @@ module.exports = {
   sendDriverSuspendedEmail,
   sendPartnerWelcomeEmail,
   sendDriverAssignedEmail,
+  sendApplicationReceivedEmail,
+  sendApplicationApprovedEmail,
+  sendApplicationRejectedEmail,
 };

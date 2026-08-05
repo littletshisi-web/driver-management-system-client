@@ -5,6 +5,7 @@ import PartnerLayout from './layouts/PartnerLayout.jsx';
 import DriverLayout from './layouts/DriverLayout.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import Apply from './pages/Apply.jsx';
 import VerifyEmail from './pages/VerifyEmail.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Drivers from './pages/Drivers.jsx';
@@ -13,6 +14,7 @@ import Tasks from './pages/Tasks.jsx';
 import Pricing from './pages/Pricing.jsx';
 import Reports from './pages/Reports.jsx';
 import Areas from './pages/Areas.jsx';
+import Applications from './pages/Applications.jsx';
 import AuditLog from './pages/AuditLog.jsx';
 import Help from './pages/Help.jsx';
 import NotFound from './pages/NotFound.jsx';
@@ -57,6 +59,7 @@ export default function App() {
       {/* Public routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/apply" element={<Apply />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
 
       {/* Protected shell — picks layout by role */}
@@ -108,6 +111,15 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
               <Areas />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="applications"
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <Applications />
             </ProtectedRoute>
           }
         />

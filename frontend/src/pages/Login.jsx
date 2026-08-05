@@ -166,7 +166,11 @@ export default function Login() {
           </button>
 
           <div className={styles.mockNotice}>
-            Don't have an account? <Link to="/register">Create one</Link>
+            Approved application? <Link to="/register">Set up your account</Link>
+          </div>
+
+          <div className={styles.mockNotice}>
+            Want to become a driver or partner? <Link to="/apply">Apply here</Link>
           </div>
 
           {USE_MOCK && (

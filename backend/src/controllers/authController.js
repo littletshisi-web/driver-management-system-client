@@ -3,12 +3,12 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const Driver = require('../models/Driver');
 const Partner = require('../models/Partner');
+const DriverApplication = require('../models/DriverApplication');
 const { signToken, signRefreshToken, verifyRefreshToken } = require('../config/jwt');
-const { isValidEmailFormat, isValidEmailDeliverable } = require('../utils/emailValidator');
+const { isValidEmailFormat } = require('../utils/emailValidator');
 const { sendVerificationEmail } = require('../services/emailService');
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-const SELF_REGISTERABLE_ROLES = ['driver', 'partner'];
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Finds the Partner record linked to this user, or creates one if it
@@ -49,25 +49,43 @@ const getOrCreateDriverId = async (user) => {
 
 const register = async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, password, applicationToken } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email and password are required.' });
+    // ✅ Registration is closed to the public — it only ever proceeds from an
+    // approved driver/partner application. No token, no account.
+    if (!applicationToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Registration requires an approved application. Apply first — we\'ll email you a registration link once approved.',
+      });
     }
 
-    const emailCheck = await isValidEmailDeliverable(email);
-    if (!emailCheck.valid) {
-      return res.status(400).json({ success: false, message: emailCheck.reason });
+    const application = await DriverApplication.findOne({ where: { registrationToken: applicationToken } });
+    if (!application || application.status !== 'approved') {
+      return res.status(400).json({ success: false, message: 'Invalid or unapproved application link.' });
+    }
+    if (application.userId) {
+      return res.status(400).json({ success: false, message: 'This registration link has already been used — please log in instead.' });
+    }
+    if (application.registrationTokenExpires && application.registrationTokenExpires < new Date()) {
+      return res.status(400).json({ success: false, message: 'This registration link has expired — please contact us for a new one.' });
     }
 
+    // ✅ Identity and role come from the approved application, never from the
+    // request body — the applicant can only set their name and password.
+    const email = application.email;
+    const fullName = (name && name.trim()) || `${application.firstName} ${application.lastName}`.trim();
+    const role = application.applicantType === 'partner' ? 'partner' : 'driver';
+
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password is required.' });
+    }
     if (!PASSWORD_REGEX.test(password)) {
       return res.status(400).json({
         success: false,
         message: 'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a symbol.',
       });
     }
-
-    const safeRole = SELF_REGISTERABLE_ROLES.includes(role) ? role : 'driver';
 
     const exists = await User.findOne({ where: { email } });
     if (exists) return res.status(409).json({ success: false, message: 'Email already registered' });
@@ -77,34 +95,44 @@ const register = async (req, res, next) => {
     const verificationTokenExpires = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
 
     const user = await User.create({
-      name, email, password, role: safeRole,
+      name: fullName, email, password, role,
       isVerified: false,
       verificationToken,
       verificationTokenExpires,
     });
 
+    // ✅ Pre-fill the operational record from the approved application instead
+    // of leaving placeholder phone numbers — the applicant already gave us
+    // this information and it was reviewed before approval.
     if (user.role === 'driver') {
-      const [firstName, ...rest] = name.trim().split(' ');
+      const [firstName, ...rest] = fullName.trim().split(' ');
       const lastName = rest.join(' ') || firstName;
 
       await Driver.create({
         userId: user.id,
-        firstName,
-        lastName,
+        firstName: application.firstName || firstName,
+        lastName: application.lastName || lastName,
         email: user.email,
-        phone: `pending-${user.id}`,
+        phone: application.phone || `pending-${user.id}`,
+        idNumber: application.idNumber || undefined,
+        zone: application.city || undefined,
+        vehicleReg: application.vehicleReg || undefined,
       });
     }
 
     if (user.role === 'partner') {
       await Partner.create({
         userId: user.id,
-        name: user.name,
-        contactName: user.name,
+        name: fullName,
+        contactName: fullName,
         contactEmail: user.email,
-        contactPhone: `pending-${user.id}`,
+        contactPhone: application.phone || `pending-${user.id}`,
       });
     }
+
+    // ✅ Consume the token — this application can never be used to register
+    // a second account.
+    await application.update({ userId: user.id });
 
     // ✅ Send the verification email. If this fails, the account still exists
     // but unverified — the user can request a resend later.

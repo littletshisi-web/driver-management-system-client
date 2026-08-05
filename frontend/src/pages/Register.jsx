@@ -1,33 +1,54 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { register as apiRegister } from '../api/authApi.js';
-import { ROLES } from '../constants/roles.js';
+import { verifyApplicationToken } from '../api/applicationApi.js';
 import styles from './Register.module.css';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
-const SELECTABLE_ROLES = [ROLES.DRIVER, ROLES.PARTNER];
+const APPLICANT_TYPE_LABEL = {
+  driver_no_vehicle:   'Driver',
+  driver_with_vehicle: 'Driver',
+  partner:             'Partner',
+};
 
 export default function Register() {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token') || '';
+
+  // ── Token verification — gates the whole page ────────────────────────────
+  const [checking, setChecking]     = useState(true);
+  const [application, setApplication] = useState(null);
+  const [tokenError, setTokenError] = useState('');
+
+  useEffect(() => {
+    if (!token) {
+      setChecking(false);
+      return;
+    }
+    verifyApplicationToken(token)
+      .then((res) => setApplication(res.data.data))
+      .catch((err) => setTokenError(err.response?.data?.message || 'This registration link is invalid.'))
+      .finally(() => setChecking(false));
+  }, [token]);
+
+  // ── Account setup form (only reachable once the token checks out) ────────
   const [name, setName]             = useState('');
-  const [email, setEmail]           = useState('');
   const [password, setPassword]     = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole]             = useState(ROLES.DRIVER);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
   const [registered, setRegistered] = useState(false);
   const [showPassword, setShowPassword]         = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  useEffect(() => {
+    if (application) setName(`${application.firstName} ${application.lastName}`.trim());
+  }, [application]);
+
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
+    if (!name.trim() || !password.trim()) {
       setError('Please fill in all fields.');
-      return;
-    }
-    if (!EMAIL_REGEX.test(email.trim())) {
-      setError('Please enter a valid email address.');
       return;
     }
     if (!PASSWORD_REGEX.test(password)) {
@@ -42,7 +63,7 @@ export default function Register() {
     setLoading(true);
     setError('');
     try {
-      await apiRegister(name, email, password, role);
+      await apiRegister(name, password, token);
       setRegistered(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
@@ -55,23 +76,7 @@ export default function Register() {
     if (e.key === 'Enter') handleRegister();
   };
 
-  if (registered) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.right} style={{ width: '100%' }}>
-          <div className={styles.formWrap}>
-            <h1 className={styles.heading}>Check your email</h1>
-            <p className={styles.subheading}>
-              We sent a verification link to <strong>{email}</strong>. Click it to activate your account, then come back and log in.
-            </p>
-            <Link to="/login" className={styles.mockNotice}>Back to login</Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
+  const Shell = ({ children }) => (
     <div className={styles.page}>
       {/* Left panel — branding */}
       <div className={styles.left}>
@@ -92,147 +97,172 @@ export default function Register() {
 
         <div className={styles.tagline}>
           <h2>Join the fleet.</h2>
-          <p>Create an account to start managing driver operations, task assignment, and reporting — built for logistics teams that move fast.</p>
+          <p>Set up your account to start managing driver operations, task assignment, and reporting — built for logistics teams that move fast.</p>
         </div>
       </div>
 
       {/* Right panel — form */}
       <div className={styles.right}>
-        <div className={styles.formWrap}>
-          <h1 className={styles.heading}>Create account</h1>
-          <p className={styles.subheading}>Sign up to access your role-based dashboard</p>
-
-          {error && <div className={styles.errorMsg}>{error}</div>}
-
-          <div className={styles.field}>
-            <label className={styles.label}>Full name</label>
-            <input
-              type="text"
-              className={styles.input}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoComplete="name"
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Email address</label>
-            <input
-              type="email"
-              className={styles.input}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoComplete="email"
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Password</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className={styles.input}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={handleKeyDown}
-                autoComplete="new-password"
-                style={{ paddingRight: '2.5rem' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                style={{
-                  position: 'absolute',
-                  right: '0.75rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  color: '#94a3b8',
-                  fontSize: '0.8rem',
-                  userSelect: 'none',
-                }}
-                tabIndex={-1}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            <span className={styles.hint}>
-              8+ characters, with uppercase, lowercase, a number, and a symbol.
-            </span>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Confirm password</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                className={styles.input}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                onKeyDown={handleKeyDown}
-                autoComplete="new-password"
-                style={{ paddingRight: '2.5rem' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword((v) => !v)}
-                style={{
-                  position: 'absolute',
-                  right: '0.75rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  color: '#94a3b8',
-                  fontSize: '0.8rem',
-                  userSelect: 'none',
-                }}
-                tabIndex={-1}
-              >
-                {showConfirmPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Account type</label>
-            <div className={styles.roleToggle}>
-              {SELECTABLE_ROLES.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  className={`${styles.roleBtn} ${role === r ? styles.roleActive : ''}`}
-                  onClick={() => setRole(r)}
-                >
-                  {r.charAt(0).toUpperCase() + r.slice(1)}
-                </button>
-              ))}
-            </div>
-            <span className={styles.hint}>
-              Need an admin account? Ask an existing admin to upgrade your access after signing up.
-            </span>
-          </div>
-
-          <button
-            className={styles.loginBtn}
-            onClick={handleRegister}
-            disabled={loading}
-          >
-            {loading ? 'Creating account…' : 'Create account'}
-          </button>
-
-          <div className={styles.mockNotice}>
-            Already have an account? <Link to="/login">Sign in</Link>
-          </div>
-        </div>
+        <div className={styles.formWrap}>{children}</div>
       </div>
     </div>
+  );
+
+  if (registered) {
+    return (
+      <Shell>
+        <h1 className={styles.heading}>Check your email</h1>
+        <p className={styles.subheading}>
+          We sent a verification link to <strong>{application?.email}</strong>. Click it to activate your account, then come back and log in.
+        </p>
+        <Link to="/login" className={styles.mockNotice}>Back to login</Link>
+      </Shell>
+    );
+  }
+
+  if (checking) {
+    return (
+      <Shell>
+        <h1 className={styles.heading}>Checking your link…</h1>
+      </Shell>
+    );
+  }
+
+  // No token, or the token didn't check out — registration is closed to the public.
+  if (!token || tokenError) {
+    return (
+      <Shell>
+        <h1 className={styles.heading}>Registration is by invitation</h1>
+        <p className={styles.subheading}>
+          {tokenError || "You'll need an approved driver or partner application to create an account."}
+        </p>
+        <Link to="/apply" className={styles.loginBtn} style={{ display: 'block', textAlign: 'center', textDecoration: 'none', lineHeight: '20px' }}>
+          Apply now
+        </Link>
+        <div className={styles.mockNotice}>
+          Already have an account? <Link to="/login">Sign in</Link>
+        </div>
+      </Shell>
+    );
+  }
+
+  return (
+    <Shell>
+      <h1 className={styles.heading}>Set up your account</h1>
+      <p className={styles.subheading}>
+        Your {APPLICANT_TYPE_LABEL[application.applicantType] || 'application'} application was approved — choose a password to finish.
+      </p>
+
+      {error && <div className={styles.errorMsg}>{error}</div>}
+
+      <div className={styles.field}>
+        <label className={styles.label}>Full name</label>
+        <input
+          type="text"
+          className={styles.input}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          autoComplete="name"
+        />
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label}>Email address</label>
+        <input
+          type="email"
+          className={styles.input}
+          value={application.email}
+          disabled
+          style={{ opacity: 0.65, cursor: 'not-allowed' }}
+        />
+        <span className={styles.hint}>Locked to the email on your approved application.</span>
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label}>Password</label>
+        <div style={{ position: 'relative' }}>
+          <input
+            type={showPassword ? 'text' : 'password'}
+            className={styles.input}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoComplete="new-password"
+            style={{ paddingRight: '2.5rem' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            style={{
+              position: 'absolute',
+              right: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              color: '#94a3b8',
+              fontSize: '0.8rem',
+              userSelect: 'none',
+            }}
+            tabIndex={-1}
+          >
+            {showPassword ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        <span className={styles.hint}>
+          8+ characters, with uppercase, lowercase, a number, and a symbol.
+        </span>
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label}>Confirm password</label>
+        <div style={{ position: 'relative' }}>
+          <input
+            type={showConfirmPassword ? 'text' : 'password'}
+            className={styles.input}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoComplete="new-password"
+            style={{ paddingRight: '2.5rem' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword((v) => !v)}
+            style={{
+              position: 'absolute',
+              right: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              color: '#94a3b8',
+              fontSize: '0.8rem',
+              userSelect: 'none',
+            }}
+            tabIndex={-1}
+          >
+            {showConfirmPassword ? 'Hide' : 'Show'}
+          </button>
+        </div>
+      </div>
+
+      <button
+        className={styles.loginBtn}
+        onClick={handleRegister}
+        disabled={loading}
+      >
+        {loading ? 'Creating account…' : 'Create account'}
+      </button>
+
+      <div className={styles.mockNotice}>
+        Already have an account? <Link to="/login">Sign in</Link>
+      </div>
+    </Shell>
   );
 }

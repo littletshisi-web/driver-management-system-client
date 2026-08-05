@@ -43,4 +43,11 @@ export const API = {
 
   // Audit
   AUDIT: '/audit',
+
+  // Applications (Become a Driver)
+  APPLICATIONS:              '/applications',
+  APPLICATION:        (id) => `/applications/${id}`,
+  APPLICATION_APPROVE:(id) => `/applications/${id}/approve`,
+  APPLICATION_REJECT: (id) => `/applications/${id}/reject`,
+  APPLICATION_VERIFY_TOKEN: (token) => `/applications/verify-token/${token}`,
 };
