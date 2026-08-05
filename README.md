@@ -19,7 +19,11 @@ cdiff --git a/backend/src/controllers/pricingController.js b/backend/src/control
 -  pricingConfig = { ...pricingConfig, ...req.body };
 +  pricingConfig = { ...pricingConfig, ...req.body };
    res.json({ success: true, data: pricingConfig });
- };d frontend
+ };
+ 
+ ### Frontend
+```bash
+ cd frontend
 npm install
 npm run dev
 ```
