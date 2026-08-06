@@ -221,7 +221,14 @@ const getStats = async (req, res, next) => {
 // GET /api/tasks/stats-by-category
 const getStatsByCategory = async (req, res, next) => {
   try {
-    const tasks = await Task.findAll({ attributes: ['category'] });
+    let { partnerId } = req.query;
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      partnerId = own?.id ?? '__none__';
+    }
+    const where = partnerId ? { partnerId } : {};
+
+    const tasks = await Task.findAll({ where, attributes: ['category'] });
 
     const counts = {};
     tasks.forEach((t) => {

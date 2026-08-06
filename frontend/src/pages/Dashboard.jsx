@@ -59,6 +59,17 @@ const defaultIcon = {
   icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/></svg>,
 };
 
+// Status icons for the partner's task-based activity feed (partners can't
+// see the system-wide audit log, so their feed is built from their own
+// recent tasks instead).
+const STATUS_ICON = {
+  delivered:  ACTION_ICON.CREATE,
+  cancelled:  ACTION_ICON.DELETE,
+  'in-transit': ACTION_ICON.UPDATE_STATUS,
+  assigned:   ACTION_ICON.ASSIGN,
+  pending:    defaultIcon,
+};
+
 function formatTimeLabel(dateStr) {
   const date = new Date(dateStr);
   const now = new Date();
@@ -147,25 +158,45 @@ export default function Dashboard() {
 
     const loadCharts = async () => {
       try {
-        const [barRes, donutRes, auditRes] = await Promise.all([
+        const isPartner = user.role === ROLES.PARTNER;
+
+        const [barRes, donutRes, activityRes] = await Promise.all([
           api.get('/reports/tasks-by-day?last=7'),
           api.get('/tasks/stats-by-category'),
-          api.get('/audit?limit=5'),
+          // Partners can't see the system-wide audit log (it isn't scoped
+          // to a single partner and shouldn't be), so their "recent
+          // activity" comes from their own tasks instead — already scoped
+          // server-side to the partner's own tasks/drivers.
+          isPartner ? api.get('/tasks?limit=5') : api.get('/audit?limit=5'),
         ]);
 
         setBarData(barRes.data.data ?? []);
         setDonutData(donutRes.data.data ?? []);
 
-        const auditRows = auditRes.data.data ?? [];
-        setActivity(auditRows.map((entry) => {
-          const { colour, icon } = ACTION_ICON[entry.action] ?? defaultIcon;
-          return {
-            colour,
-            icon,
-            timeLabel: formatTimeLabel(entry.createdAt),
-            message: `${entry.action} on ${entry.entity}${entry.entityId ? ` (${String(entry.entityId).slice(0, 8)}…)` : ''}`,
-          };
-        }));
+        if (isPartner) {
+          const taskRows = activityRes.data.data ?? [];
+          setActivity(taskRows.map((task) => {
+            const { colour, icon } = STATUS_ICON[task.status] ?? defaultIcon;
+            const driverName = task.Driver ? `${task.Driver.firstName} ${task.Driver.lastName}` : 'Unassigned';
+            return {
+              colour,
+              icon,
+              timeLabel: formatTimeLabel(task.updatedAt),
+              message: `${task.taskCode} (${task.status}) — ${driverName}`,
+            };
+          }));
+        } else {
+          const auditRows = activityRes.data.data ?? [];
+          setActivity(auditRows.map((entry) => {
+            const { colour, icon } = ACTION_ICON[entry.action] ?? defaultIcon;
+            return {
+              colour,
+              icon,
+              timeLabel: formatTimeLabel(entry.createdAt),
+              message: `${entry.action} on ${entry.entity}${entry.entityId ? ` (${String(entry.entityId).slice(0, 8)}…)` : ''}`,
+            };
+          }));
+        }
       } catch {
         // Charts are non-critical — fail silently
       }

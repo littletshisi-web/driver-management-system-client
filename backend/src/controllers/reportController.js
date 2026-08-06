@@ -256,6 +256,14 @@ const getRevenueSummary = async (req, res, next) => {
 const getTasksByDay = async (req, res, next) => {
   try {
     const days = parseInt(req.query.last) || 7;
+
+    let { partnerId } = req.query;
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      partnerId = own?.id ?? '__none__';
+    }
+    const base = partnerId ? { partnerId } : {};
+
     const result = [];
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
@@ -266,6 +274,7 @@ const getTasksByDay = async (req, res, next) => {
 
       const count = await Task.count({
         where: {
+          ...base,
           status: 'delivered',
           deliveredAt: { [Op.between]: [date, end] },
         },
