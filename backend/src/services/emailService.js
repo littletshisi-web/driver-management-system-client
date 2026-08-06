@@ -5,6 +5,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 const APP_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+// Where new-application notifications go — override with STAFF_NOTIFICATION_EMAIL
+// in .env if info@ isn't the right inbox for this.
+const STAFF_EMAIL = process.env.STAFF_NOTIFICATION_EMAIL || 'info@danigroup.co.za';
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 const base = (content) => `
@@ -173,6 +176,27 @@ const sendApplicationRejectedEmail = async (toEmail, firstName, reason) => {
   `));
 };
 
+// ─── 10. New application — staff notification ──────────────────────────────────
+// Sent to STAFF_EMAIL every time someone submits an application, so a new
+// submission doesn't just sit unnoticed on the admin /applications page.
+const sendNewApplicationStaffNotification = async (application) => {
+  const typeLabel = {
+    driver_no_vehicle: 'Driver (No Vehicle)',
+    driver_with_vehicle: 'Driver (Own Vehicle)',
+    partner: 'Partner (Fleet)',
+  }[application.applicantType] || application.applicantType;
+
+  return send(STAFF_EMAIL, `New application: ${application.firstName} ${application.lastName}`, base(`
+    <h2 style="color:#1e3a5f;margin-top:0;">New Driver/Partner Application</h2>
+    <p style="color:#475569;margin:4px 0;"><strong>Name:</strong> ${application.firstName} ${application.lastName}</p>
+    <p style="color:#475569;margin:4px 0;"><strong>Applying as:</strong> ${typeLabel}</p>
+    <p style="color:#475569;margin:4px 0;"><strong>Email:</strong> ${application.email}</p>
+    <p style="color:#475569;margin:4px 0;"><strong>Phone:</strong> ${application.phone}</p>
+    ${application.city ? `<p style="color:#475569;margin:4px 0;"><strong>Location:</strong> ${application.city}</p>` : ''}
+    ${btn(`${APP_URL}/applications`, 'Review Application')}
+  `));
+};
+
 module.exports = {
   sendVerificationEmail,
   sendTaskAssignedEmail,
@@ -183,4 +207,5 @@ module.exports = {
   sendApplicationReceivedEmail,
   sendApplicationApprovedEmail,
   sendApplicationRejectedEmail,
+  sendNewApplicationStaffNotification,
 };

@@ -6,6 +6,7 @@ const {
   sendApplicationReceivedEmail,
   sendApplicationApprovedEmail,
   sendApplicationRejectedEmail,
+  sendNewApplicationStaffNotification,
 } = require('../services/emailService');
 
 const REGISTRATION_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -59,6 +60,12 @@ const create = async (req, res, next) => {
       await sendApplicationReceivedEmail(email, firstName);
     } catch (emailErr) {
       console.error('Failed to send application received email:', emailErr.message);
+    }
+
+    try {
+      await sendNewApplicationStaffNotification(application);
+    } catch (emailErr) {
+      console.error('Failed to send staff notification email:', emailErr.message);
     }
 
     res.status(201).json({
