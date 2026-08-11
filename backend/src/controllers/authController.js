@@ -209,7 +209,24 @@ const login = async (req, res, next) => {
     }
 
     const user = await User.findOne({ where: { email } });
-    if (!user || !(await user.comparePassword(password)))
+    if (!user) {
+      // No account exists yet — check whether this is someone who was
+      // approved but never finished the registration/password step,
+      // since "Invalid credentials" is misleading in that case (there's
+      // no account to be wrong about, they just haven't set one up yet).
+      const pendingApplication = await DriverApplication.findOne({
+        where: { email, status: 'approved', userId: null },
+      });
+      if (pendingApplication) {
+        return res.status(401).json({
+          success: false,
+          message: 'Your application was approved but your account isn\u2019t set up yet — check your email for the account setup link, or use "Set up your account" below.',
+          pendingSetup: true,
+        });
+      }
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+    if (!(await user.comparePassword(password)))
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     if (!user.isActive) return res.status(403).json({ success: false, message: 'Account disabled' });
 

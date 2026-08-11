@@ -28,11 +28,13 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
+  const [pendingSetup, setPendingSetup] = useState(false);
 
   const handleRolePick = (r) => {
     setRole(r);
     setEmail(DEMO_EMAILS[r]);
     setError('');
+    setPendingSetup(false);
   };
 
   const handleLogin = async () => {
@@ -42,6 +44,7 @@ export default function Login() {
     }
     setLoading(true);
     setError('');
+    setPendingSetup(false);
     try {
       if (USE_MOCK) {
         const user = MOCK_USERS[role];
@@ -54,6 +57,7 @@ export default function Login() {
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password.');
+      setPendingSetup(!!err.response?.data?.pendingSetup);
     } finally {
       setLoading(false);
     }
@@ -165,7 +169,7 @@ export default function Login() {
             {loading ? 'Signing in…' : 'Sign in to dashboard'}
           </button>
 
-          <div className={styles.mockNotice}>
+          <div className={pendingSetup ? styles.mockNoticeHighlight : styles.mockNotice}>
             Approved application? <Link to="/register">Set up your account</Link>
           </div>
 

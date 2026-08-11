@@ -292,6 +292,27 @@
   text-decoration: underline;
 }
 
+.mockNoticeHighlight {
+  margin-top: 20px;
+  padding: 12px 14px;
+  background: var(--accent-light);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.mockNoticeHighlight a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.mockNoticeHighlight a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 900px) {
   .left { display: none; }
   .right { width: 100%; }
