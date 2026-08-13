@@ -12,6 +12,46 @@ const APPLICANT_TYPE_LABEL = {
   partner:             'Partner',
 };
 
+// Hoisted to module scope deliberately — defining this inside Register()
+// would give it a new component identity on every render (i.e. on every
+// keystroke in any field), causing React to unmount and remount the whole
+// form each time. That silently drops input focus on every keystroke; it
+// usually resolves fast enough to look fine, but desyncs visibly when
+// something else (like the browser's password-autofill bar) interrupts
+// the timing — seen as the keyboard dismissing and the page jumping back
+// to the top mid-type.
+const Shell = ({ children }) => (
+  <div className={styles.page}>
+    {/* Left panel — branding */}
+    <div className={styles.left}>
+      <div className={styles.brand}>
+        <div className={styles.brandIcon}>
+          <svg viewBox="0 0 24 24" fill="white" width={22} height={22}>
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+            <line x1="6" y1="1" x2="6" y2="4" stroke="white" strokeWidth="2"/>
+            <line x1="10" y1="1" x2="10" y2="4" stroke="white" strokeWidth="2"/>
+            <line x1="14" y1="1" x2="14" y2="4" stroke="white" strokeWidth="2"/>
+          </svg>
+        </div>
+        <div>
+          <div className={styles.brandName}>DMS</div>
+          <div className={styles.brandSub}>Driver Management System</div>
+        </div>
+      </div>
+
+      <div className={styles.tagline}>
+        <h2>Join the fleet.</h2>
+        <p>Set up your account to start managing driver operations, task assignment, and reporting — built for logistics teams that move fast.</p>
+      </div>
+    </div>
+
+    {/* Right panel — form */}
+    <div className={styles.right}>
+      <div className={styles.formWrap}>{children}</div>
+    </div>
+  </div>
+);
+
 export default function Register() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
@@ -75,38 +115,6 @@ export default function Register() {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') handleRegister();
   };
-
-  const Shell = ({ children }) => (
-    <div className={styles.page}>
-      {/* Left panel — branding */}
-      <div className={styles.left}>
-        <div className={styles.brand}>
-          <div className={styles.brandIcon}>
-            <svg viewBox="0 0 24 24" fill="white" width={22} height={22}>
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
-              <line x1="6" y1="1" x2="6" y2="4" stroke="white" strokeWidth="2"/>
-              <line x1="10" y1="1" x2="10" y2="4" stroke="white" strokeWidth="2"/>
-              <line x1="14" y1="1" x2="14" y2="4" stroke="white" strokeWidth="2"/>
-            </svg>
-          </div>
-          <div>
-            <div className={styles.brandName}>DMS</div>
-            <div className={styles.brandSub}>Driver Management System</div>
-          </div>
-        </div>
-
-        <div className={styles.tagline}>
-          <h2>Join the fleet.</h2>
-          <p>Set up your account to start managing driver operations, task assignment, and reporting — built for logistics teams that move fast.</p>
-        </div>
-      </div>
-
-      {/* Right panel — form */}
-      <div className={styles.right}>
-        <div className={styles.formWrap}>{children}</div>
-      </div>
-    </div>
-  );
 
   if (registered) {
     return (
