@@ -27,12 +27,25 @@ const app = express();
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || '*', credentials: true }));
 
+// General API traffic — generous, since a dashboard-heavy admin app
+// fires many requests per page load; this exists to catch abuse, not to
+// throttle normal multi-page browsing by everyone behind one office IP.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500,
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
 app.use('/api/', limiter);
+
+// Login specifically needs a much tighter limit — this is the actual
+// brute-force guard, kept separate so it doesn't get diluted by (or
+// itself dilute) normal API traffic from everyone else on the network.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { success: false, message: 'Too many login attempts, please try again later.' },
+});
+app.use('/api/auth/login', loginLimiter);
 
 // ── Parsing & Compression ──────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
