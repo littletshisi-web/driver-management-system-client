@@ -89,6 +89,11 @@ export default function Tasks() {
     }
   };
 
+  const handleCancel = (task) => {
+    if (!window.confirm(`Cancel task ${task.taskCode}? This can't be undone.`)) return;
+    handleStatusChange(task, 'cancelled');
+  };
+
   if (loading) {
     return (
       <PageShell title="Task Board">
@@ -151,7 +156,10 @@ export default function Tasks() {
                       )}
                       {user?.role !== ROLES.ADMIN && key !== 'cancelled' && key !== 'delivered' && (
                         <>
-                          {key === 'assigned' && (
+                          {/* A task can have a driver but still sit in 'pending' status —
+                              treat that the same as 'assigned' so it isn't a dead end
+                              with no way to progress it. */}
+                          {(key === 'assigned' || (key === 'pending' && task.driverId)) && (
                             <button className={styles.progressBtn} onClick={() => handleStatusChange(task, 'in-transit')}>
                               Start →
                             </button>
@@ -162,6 +170,11 @@ export default function Tasks() {
                             </button>
                           )}
                         </>
+                      )}
+                      {user?.role !== ROLES.DRIVER && key !== 'delivered' && key !== 'cancelled' && (
+                        <button className={styles.cancelBtn} onClick={() => handleCancel(task)}>
+                          Cancel
+                        </button>
                       )}
                     </div>
                   </div>
