@@ -119,6 +119,69 @@ const create = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const update = async (req, res, next) => {
+  try {
+    const task = await Task.findByPk(req.params.id);
+    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    const body = { ...req.body };
+
+    // Partners may only edit their own tasks, can't move a task to another
+    // partner, and can only reassign to one of their own drivers — same
+    // ownership enforcement as create().
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      if (!own || task.partnerId !== own.id) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+      delete body.partnerId;
+      if (body.driverId) {
+        const ownDriver = await Driver.findOne({ where: { id: body.driverId, partnerId: own.id } });
+        if (!ownDriver) return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
+
+    const previousDriverId = task.driverId;
+
+    // Recalculate the fare if anything pricing-relevant changed, same
+    // formula as create() — an edited distance/address shouldn't leave a
+    // stale fare on the task.
+    const pickupLat   = body.pickupLat   ?? task.pickupLat;
+    const pickupLng   = body.pickupLng   ?? task.pickupLng;
+    const dropoffLat  = body.dropoffLat  ?? task.dropoffLat;
+    const dropoffLng  = body.dropoffLng  ?? task.dropoffLng;
+    let distanceKm = body.distanceKm ?? task.distanceKm;
+    if ((body.pickupLat || body.dropoffLat) && pickupLat && dropoffLat) {
+      distanceKm = calculateDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
+    }
+    const baseFare  = body.baseFare  ?? task.baseFare  ?? 35;
+    const perKmRate = body.perKmRate ?? task.perKmRate ?? 12;
+    const totalFare = pricingService.calculate(baseFare, perKmRate, distanceKm || 0);
+
+    // A task that had no driver and gets one assigned via this edit should
+    // move into 'assigned', same as at creation — unless the caller
+    // explicitly set a status themselves.
+    const statusUpdate = (!previousDriverId && body.driverId && !body.status)
+      ? { status: 'assigned' }
+      : {};
+
+    await task.update({ ...body, distanceKm, totalFare, ...statusUpdate });
+
+    if (body.driverId && body.driverId !== previousDriverId) {
+      try {
+        const driver = await Driver.findByPk(body.driverId);
+        if (driver?.email) {
+          await sendTaskAssignedEmail(driver.email, `${driver.firstName} ${driver.lastName}`.trim(), task);
+        }
+      } catch (emailErr) {
+        console.error('Task assigned email failed:', emailErr.message);
+      }
+    }
+
+    res.json({ success: true, data: task });
+  } catch (err) { next(err); }
+};
+
 const updateStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
@@ -261,4 +324,4 @@ const getStatsByCategory = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getOne, create, updateStatus, assignDriver, getStats, getStatsByCategory };
+module.exports = { getAll, getOne, create, update, updateStatus, assignDriver, getStats, getStatsByCategory };

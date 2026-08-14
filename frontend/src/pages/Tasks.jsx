@@ -4,7 +4,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { useTasks } from '../hooks/useTasks.js';
 import { useDrivers } from '../hooks/useDrivers.js';
 import { useAreas } from '../hooks/useAreas.js';
-import { createTask, updateTaskStatus } from '../api/taskApi.js';
+import { createTask, updateTask, updateTaskStatus } from '../api/taskApi.js';
 import { ROLES } from '../constants/roles.js';
 import { CATEGORY_LABEL, CATEGORY_COLOUR } from '../constants/taskCategories.js';
 import { formatCurrency } from '../utils/formatCurrency.js';
@@ -43,7 +43,12 @@ export default function Tasks() {
   const toast    = useToast();
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing]     = useState(null);
   const [saving, setSaving]       = useState(false);
+
+  const openCreate = () => { setEditing(null); setModalOpen(true); };
+  const openEdit   = (task) => { setEditing(task); setModalOpen(true); };
+  const closeModal = () => { setModalOpen(false); setEditing(null); };
 
   const taskFilters = user?.role === ROLES.DRIVER ? { driverId: user.driverId } : {};
   const { tasks, loading, error, refetch } = useTasks(taskFilters);
@@ -59,14 +64,16 @@ export default function Tasks() {
     try {
       if (USE_MOCK) {
         await new Promise((r) => setTimeout(r, 600));
+      } else if (editing) {
+        await updateTask(editing.id, formData);
       } else {
         await createTask(formData);
       }
-      toast('Task created successfully');
-      setModalOpen(false);
+      toast(editing ? 'Task updated successfully' : 'Task created successfully');
+      closeModal();
       refetch();
     } catch (err) {
-      toast(err.response?.data?.message || 'Failed to create task', 'error');
+      toast(err.response?.data?.message || `Failed to ${editing ? 'update' : 'create'} task`, 'error');
     } finally {
       setSaving(false);
     }
@@ -96,7 +103,7 @@ export default function Tasks() {
       subtitle="Kanban view of all operational tasks"
       actions={
         user?.role !== ROLES.DRIVER && (
-          <Button variant="primary" onClick={() => setModalOpen(true)}>
+          <Button variant="primary" onClick={openCreate}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             New Task
           </Button>
@@ -136,20 +143,27 @@ export default function Tasks() {
                       </span>
                     </div>
 
-                    {user?.role !== ROLES.ADMIN && key !== 'cancelled' && key !== 'delivered' && (
-                      <div className={styles.taskActions}>
-                        {key === 'assigned' && (
-                          <button className={styles.progressBtn} onClick={() => handleStatusChange(task, 'in-transit')}>
-                            Start →
-                          </button>
-                        )}
-                        {key === 'in-transit' && (
-                          <button className={styles.progressBtn} onClick={() => handleStatusChange(task, 'delivered')}>
-                            Complete ✓
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    <div className={styles.taskActions}>
+                      {user?.role !== ROLES.DRIVER && key !== 'delivered' && key !== 'cancelled' && (
+                        <button className={styles.editBtn} onClick={() => openEdit(task)}>
+                          Edit
+                        </button>
+                      )}
+                      {user?.role !== ROLES.ADMIN && key !== 'cancelled' && key !== 'delivered' && (
+                        <>
+                          {key === 'assigned' && (
+                            <button className={styles.progressBtn} onClick={() => handleStatusChange(task, 'in-transit')}>
+                              Start →
+                            </button>
+                          )}
+                          {key === 'in-transit' && (
+                            <button className={styles.progressBtn} onClick={() => handleStatusChange(task, 'delivered')}>
+                              Complete ✓
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -160,11 +174,11 @@ export default function Tasks() {
 
       <Modal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Create New Task"
+        onClose={closeModal}
+        title={editing ? `Edit — ${editing.taskCode}` : 'Create New Task'}
         footer={<></>}
       >
-        <TaskForm drivers={drivers} areas={areas} onSubmit={handleSubmit} loading={saving} />
+        <TaskForm initial={editing ?? {}} drivers={drivers} areas={areas} onSubmit={handleSubmit} loading={saving} />
       </Modal>
     </PageShell>
   );

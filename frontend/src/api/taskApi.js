@@ -18,6 +18,13 @@ export const getTask = (id) =>
 export const createTask = (data) =>
   api.post(API.TASKS, data);
 
+// PATCH /api/tasks/:id
+// Body: same shape as createTask — full task edit (category, driver,
+// area, addresses, distance). Fare is recalculated server-side.
+// Response: { data: Task }
+export const updateTask = (id, data) =>
+  api.patch(API.TASK(id), data);
+
 // PATCH /api/tasks/:id/status
 // Body: { status } — one of: assigned | in_progress | completed | cancelled
 // Response: { data: Task }

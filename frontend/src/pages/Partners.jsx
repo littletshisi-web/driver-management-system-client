@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePartners } from '../hooks/usePartners.js';
 import { createPartner, updatePartner } from '../api/partnerApi.js';
@@ -16,6 +17,7 @@ import styles from './Partners.module.css';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 export default function Partners() {
+  const navigate = useNavigate();
   const toast = useToast();
   const { partners, loading, error, refetch } = usePartners();
 
@@ -95,7 +97,7 @@ export default function Partners() {
                   <td><Badge colour="amber">{p.activeTaskCount} active</Badge></td>
                   <td>
                     <div className={styles.actions}>
-                      <Button variant="secondary" size="sm" onClick={() => toast(`Viewing ${p.name} drivers`)}>View Drivers</Button>
+                      <Button variant="secondary" size="sm" onClick={() => navigate(`/drivers?partnerId=${p.id}`)}>View Drivers</Button>
                       <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>Edit</Button>
                     </div>
                   </td>

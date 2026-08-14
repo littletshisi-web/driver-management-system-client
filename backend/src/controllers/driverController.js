@@ -31,7 +31,7 @@ const getAll = async (req, res, next) => {
     }
     const { rows, count } = await Driver.findAndCountAll({
       where,
-      include: [{ model: Partner, attributes: ['id', 'name'] }],
+      include: [{ model: Partner, as: 'partner', attributes: ['id', 'name'] }],
       limit: parseInt(limit),
       offset: (parseInt(page) - 1) * parseInt(limit),
       order: [['createdAt', 'DESC']],
@@ -43,7 +43,7 @@ const getAll = async (req, res, next) => {
 const getOne = async (req, res, next) => {
   try {
     const driver = await Driver.findByPk(req.params.id, {
-      include: [{ model: Partner, attributes: ['id', 'name', 'type'] }],
+      include: [{ model: Partner, as: 'partner', attributes: ['id', 'name', 'type'] }],
     });
     if (!driver) return res.status(404).json({ success: false, message: 'Driver not found' });
     res.json({ success: true, data: driver });

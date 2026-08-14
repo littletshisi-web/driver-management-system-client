@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { useDrivers } from '../hooks/useDrivers.js';
@@ -51,6 +52,8 @@ const fullName = (driver) =>
 export default function Drivers() {
   const { user } = useAuth();
   const toast    = useToast();
+  const [searchParams] = useSearchParams();
+  const viewingPartnerId = searchParams.get('partnerId');
 
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -62,11 +65,16 @@ export default function Drivers() {
     search,
     status: statusFilter,
     ...(user?.role === ROLES.PARTNER ? { partnerId: user.partnerId } : {}),
+    ...(viewingPartnerId && user?.role !== ROLES.PARTNER ? { partnerId: viewingPartnerId } : {}),
   };
 
   const { drivers, loading, error, refetch } = useDrivers(filters);
   const { areas }                            = useAreas();
   const { partners }                         = usePartners();
+
+  const viewingPartner = viewingPartnerId
+    ? partners.find((p) => p.id === viewingPartnerId)
+    : null;
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit   = (driver) => { setEditing(driver); setModalOpen(true); };
@@ -113,7 +121,11 @@ export default function Drivers() {
   return (
     <PageShell
       title={user?.role === ROLES.PARTNER ? 'My Drivers' : 'Drivers'}
-      subtitle="Manage driver profiles, assignments, and availability"
+      subtitle={
+        viewingPartner
+          ? <>Showing drivers for <strong>{viewingPartner.name}</strong> — <Link to="/drivers">view all drivers</Link></>
+          : 'Manage driver profiles, assignments, and availability'
+      }
       actions={
         user?.role !== ROLES.DRIVER && (
           <Button variant="primary" onClick={openCreate}>

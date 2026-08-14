@@ -4,14 +4,14 @@ import styles from './Form.module.css';
 import { validateTask, isValid } from '../../utils/validation.js';
 import { TASK_CATEGORIES } from '../../constants/taskCategories.js';
 
-export default function TaskForm({ drivers = [], areas = [], onSubmit, loading }) {
+export default function TaskForm({ initial = {}, drivers = [], areas = [], onSubmit, loading }) {
   const [form, setForm] = useState({
-    category:       '',
-    driverId:       '',
-    areaId:         '',
-    distanceKm:     '',
-    pickupAddress:  '',
-    dropoffAddress: '',
+    category:       initial.category       ?? '',
+    driverId:       initial.driverId       ?? '',
+    areaId:         initial.areaId         ?? '',
+    distanceKm:     initial.distanceKm     ?? '',
+    pickupAddress:  initial.pickupAddress  ?? '',
+    dropoffAddress: initial.dropoffAddress ?? '',
   });
   const [errors, setErrors] = useState({});
 
@@ -73,7 +73,7 @@ export default function TaskForm({ drivers = [], areas = [], onSubmit, loading }
 
       <div className={styles.formActions}>
         <button className={styles.submitBtn} onClick={handleSubmit} disabled={loading}>
-          {loading ? 'Creating…' : 'Create Task'}
+          {loading ? (initial.id ? 'Saving…' : 'Creating…') : (initial.id ? 'Update Task' : 'Create Task')}
         </button>
       </div>
     </div>

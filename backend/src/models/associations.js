@@ -17,8 +17,8 @@ const DriverApplication = require('./DriverApplication');
 // No associations needed — it's a standalone singleton table
 
 // Partner ↔ Driver
-Partner.hasMany(Driver, { foreignKey: 'partnerId' });
-Driver.belongsTo(Partner, { foreignKey: 'partnerId' });
+Partner.hasMany(Driver, { foreignKey: 'partnerId', as: 'drivers' });
+Driver.belongsTo(Partner, { foreignKey: 'partnerId', as: 'partner' });
 
 // Partner ↔ Task
 Partner.hasMany(Task, { foreignKey: 'partnerId' });
