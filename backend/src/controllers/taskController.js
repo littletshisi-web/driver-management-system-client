@@ -13,6 +13,7 @@ const {
   sendTaskCompletedEmail,
 } = require('../services/emailService');
 const { Op } = require('sequelize');
+const { buildPartnerTaskScope } = require('../utils/partnerTaskScope');
 
 const getAll = async (req, res, next) => {
   try {
@@ -25,16 +26,25 @@ const getAll = async (req, res, next) => {
       const own = await Driver.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
       driverId = own?.id ?? '__none__';
     }
-    // Partners can only ever see their own drivers' tasks — same pattern.
-    if (req.user.role === 'partner') {
-      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
-      partnerId = own?.id ?? '__none__';
-    }
 
     const where = {};
     if (status)    where.status    = status;
-    if (driverId)  where.driverId  = driverId;
-    if (partnerId) where.partnerId = partnerId;
+
+    // Partners can only ever see their own drivers' tasks. A task's own
+    // partnerId column only gets set when the partner created it
+    // themselves — tasks admin creates and assigns to one of that
+    // partner's drivers never get partnerId set, so relying on that
+    // column alone hid every admin-created task from the partner who
+    // actually owns the driver. Match on both: tasks explicitly tagged
+    // with their partnerId, OR assigned to any of their own drivers.
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      Object.assign(where, await buildPartnerTaskScope(own?.id ?? '__none__'));
+    } else {
+      if (driverId)  where.driverId  = driverId;
+      if (partnerId) where.partnerId = partnerId;
+    }
+
     const { rows, count } = await Task.findAndCountAll({
       where,
       include: [
@@ -54,12 +64,30 @@ const getOne = async (req, res, next) => {
   try {
     const task = await Task.findByPk(req.params.id, {
       include: [
-        { model: Driver,  attributes: ['id', 'firstName', 'lastName', 'phone', 'zone'] },
+        { model: Driver,  attributes: ['id', 'firstName', 'lastName', 'phone', 'zone', 'partnerId'] },
         { model: Partner, attributes: ['id', 'name', 'commissionRate'] },
         { model: Area,    attributes: ['id', 'name', 'region'] },
       ],
     });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    // A driver or partner fetching a task directly by ID (not through the
+    // already-scoped list) could previously see any task in the system —
+    // enforce the same ownership rule here as everywhere else.
+    if (req.user.role === 'driver') {
+      const own = await Driver.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      if (!own || task.driverId !== own.id) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
+    if (req.user.role === 'partner') {
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      const belongsToPartner = task.partnerId === own?.id || task.Driver?.partnerId === own?.id;
+      if (!own || !belongsToPartner) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
+
     res.json({ success: true, data: task });
   } catch (err) { next(err); }
 };
@@ -77,6 +105,13 @@ const create = async (req, res, next) => {
         const ownDriver = await Driver.findOne({ where: { id: body.driverId, partnerId: body.partnerId } });
         if (!ownDriver) return res.status(403).json({ success: false, message: 'Access denied' });
       }
+    } else if (body.driverId) {
+      // Admin/manager assigning a driver at creation — keep partnerId in
+      // sync with that driver's own partner so the task shows up
+      // correctly anywhere that filters by partnerId directly, not just
+      // through the driver-scoped fallback in getAll.
+      const driver = await Driver.findByPk(body.driverId, { attributes: ['partnerId'] });
+      if (driver?.partnerId) body.partnerId = driver.partnerId;
     }
 
     const { pickupLat, pickupLng, dropoffLat, dropoffLng, baseFare, perKmRate } = body;
@@ -128,10 +163,19 @@ const update = async (req, res, next) => {
 
     // Partners may only edit their own tasks, can't move a task to another
     // partner, and can only reassign to one of their own drivers — same
-    // ownership enforcement as create().
+    // ownership enforcement as create(). A task belongs to the partner if
+    // it's explicitly tagged with their partnerId OR its currently
+    // assigned driver is one of theirs (admin-created tasks never get
+    // partnerId set, same root cause as getAll's list scoping).
     if (req.user.role === 'partner') {
       const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
-      if (!own || task.partnerId !== own.id) {
+      let taskDriverPartnerId = null;
+      if (task.driverId) {
+        const currentDriver = await Driver.findByPk(task.driverId, { attributes: ['partnerId'] });
+        taskDriverPartnerId = currentDriver?.partnerId ?? null;
+      }
+      const belongsToPartner = task.partnerId === own?.id || taskDriverPartnerId === own?.id;
+      if (!own || !belongsToPartner) {
         return res.status(403).json({ success: false, message: 'Access denied' });
       }
       delete body.partnerId;
@@ -139,6 +183,11 @@ const update = async (req, res, next) => {
         const ownDriver = await Driver.findOne({ where: { id: body.driverId, partnerId: own.id } });
         if (!ownDriver) return res.status(403).json({ success: false, message: 'Access denied' });
       }
+    } else if (body.driverId && body.driverId !== task.driverId) {
+      // Admin/manager reassigning the driver via edit — keep partnerId in
+      // sync with the new driver's own partner, same as create().
+      const driver = await Driver.findByPk(body.driverId, { attributes: ['partnerId'] });
+      if (driver?.partnerId) body.partnerId = driver.partnerId;
     }
 
     const previousDriverId = task.driverId;
@@ -187,7 +236,7 @@ const updateStatus = async (req, res, next) => {
     const { status } = req.body;
     const task = await Task.findByPk(req.params.id, {
       include: [
-        { model: Driver,  attributes: ['id', 'firstName', 'lastName', 'email'] },
+        { model: Driver,  attributes: ['id', 'firstName', 'lastName', 'email', 'partnerId'] },
         { model: Partner, attributes: ['id', 'name', 'contactEmail'] },
       ],
     });
@@ -196,6 +245,10 @@ const updateStatus = async (req, res, next) => {
     // Drivers can only progress a task actually assigned to them; partners
     // only for tasks belonging to their own drivers. Never trust the role
     // alone — verify ownership against the authenticated user's own record.
+    // A task belongs to the partner if it's explicitly tagged with their
+    // partnerId OR its assigned driver is one of theirs (tasks admin
+    // creates never get partnerId set even when assigned to that
+    // partner's driver).
     if (req.user.role === 'driver') {
       const own = await Driver.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
       if (!own || task.driverId !== own.id) {
@@ -204,7 +257,8 @@ const updateStatus = async (req, res, next) => {
     }
     if (req.user.role === 'partner') {
       const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
-      if (!own || task.partnerId !== own.id) {
+      const belongsToPartner = task.partnerId === own?.id || task.Driver?.partnerId === own?.id;
+      if (!own || !belongsToPartner) {
         return res.status(403).json({ success: false, message: 'Access denied' });
       }
     }
@@ -267,11 +321,13 @@ const assignDriver = async (req, res, next) => {
 const getStats = async (req, res, next) => {
   try {
     let { partnerId } = req.query;
+    let base = {};
     if (req.user.role === 'partner') {
       const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
-      partnerId = own?.id ?? '__none__';
+      base = await buildPartnerTaskScope(own?.id ?? '__none__');
+    } else if (partnerId) {
+      base = { partnerId };
     }
-    const base = partnerId ? { partnerId } : {};
     const [total, active, pending] = await Promise.all([
       Task.count({ where: base }),
       Task.count({ where: { ...base, status: { [Op.in]: ['assigned', 'in-transit'] } } }),
@@ -285,11 +341,13 @@ const getStats = async (req, res, next) => {
 const getStatsByCategory = async (req, res, next) => {
   try {
     let { partnerId } = req.query;
+    let where = {};
     if (req.user.role === 'partner') {
       const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
-      partnerId = own?.id ?? '__none__';
+      where = await buildPartnerTaskScope(own?.id ?? '__none__');
+    } else if (partnerId) {
+      where = { partnerId };
     }
-    const where = partnerId ? { partnerId } : {};
 
     const tasks = await Task.findAll({ where, attributes: ['category'] });
 

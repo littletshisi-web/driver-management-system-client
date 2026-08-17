@@ -5,6 +5,7 @@ const Driver = require('../models/Driver');
 const Partner = require('../models/Partner');
 const Task = require('../models/Task');
 const { Op } = require('sequelize');
+const { buildPartnerTaskScope } = require('../utils/partnerTaskScope');
 const PDFDocument = require('pdfkit');
 
 // Resolves the Driver record linked to the logged-in user (if any).
@@ -60,17 +61,25 @@ const getEarnings = async (req, res, next) => {
 
 const getTaskReport = async (req, res, next) => {
   try {
-    const { from, to, partnerId } = req.query;
+    const { from, to } = req.query;
     const where = {};
 
     if (req.user.role === 'driver') {
       const ownDriverId = await getOwnDriverId(req.user.id);
       where.driverId = ownDriverId || '00000000-0000-0000-0000-000000000000';
-    } else if (req.query.driverId) {
-      where.driverId = req.query.driverId;
+    } else if (req.user.role === 'partner') {
+      // Never trust a client-supplied partnerId for this role — always
+      // scope to the authenticated partner's own tasks, same as
+      // everywhere else. This endpoint previously had no automatic
+      // scoping at all: a partner who didn't happen to pass their own
+      // partnerId as a query param would see every company's tasks.
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      Object.assign(where, await buildPartnerTaskScope(own?.id ?? '__none__'));
+    } else {
+      if (req.query.driverId)  where.driverId  = req.query.driverId;
+      if (req.query.partnerId) where.partnerId = req.query.partnerId;
     }
 
-    if (partnerId) where.partnerId = partnerId;
     if (from && to) where.createdAt = { [Op.between]: [new Date(from), new Date(to)] };
 
     const tasks = await Task.findAll({
@@ -153,6 +162,20 @@ const exportReport = async (req, res, next) => {
     if (req.user.role === 'driver') {
       const ownDriverId = await getOwnDriverId(req.user.id);
       where.driverId = ownDriverId || '00000000-0000-0000-0000-000000000000';
+    } else if (req.user.role === 'partner') {
+      // Never trust a client-supplied driverId/partnerId for this role.
+      // Earnings are always tied to a driver directly, so scope those by
+      // the partner's own driver IDs; tasks use the shared partner scope
+      // (partnerId column OR owned driver) since admin-created tasks
+      // never get partnerId set.
+      const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      const ownPartnerId = own?.id ?? '__none__';
+      if (reportType === 'earnings') {
+        const drivers = await Driver.findAll({ where: { partnerId: ownPartnerId }, attributes: ['id'] });
+        where.driverId = { [Op.in]: drivers.map((d) => d.id) };
+      } else {
+        Object.assign(where, await buildPartnerTaskScope(ownPartnerId));
+      }
     } else if (req.query.driverId) {
       where.driverId = req.query.driverId;
     }
@@ -258,11 +281,13 @@ const getTasksByDay = async (req, res, next) => {
     const days = parseInt(req.query.last) || 7;
 
     let { partnerId } = req.query;
+    let base = {};
     if (req.user.role === 'partner') {
       const own = await Partner.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
-      partnerId = own?.id ?? '__none__';
+      base = await buildPartnerTaskScope(own?.id ?? '__none__');
+    } else if (partnerId) {
+      base = { partnerId };
     }
-    const base = partnerId ? { partnerId } : {};
 
     const result = [];
     for (let i = days - 1; i >= 0; i--) {
